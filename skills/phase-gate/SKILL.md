@@ -29,21 +29,23 @@ from a cited paper), and a missing/stale/unclean bib-verify report at P8.
 (≤30 days, verdict not `taken`) · [ ] refs.bib passes bib-verify · [ ] reading notes for every competitor ·
 [ ] baseline candidates listed with code availability.
 
-**P2 Ideation** — [ ] ≥1 idea with pre-gate sentence (security-bearing vs substrate) · [ ] Gate A (freed parameter)
-and Gate B (anomaly) recorded, or honest negative · [ ] every idea's core claims entered in CLAIMS.md as
-falsifiable rows (status `open`) · [ ] novelty re-check for the chosen idea.
+**P2 Ideation** — [ ] ≥1 idea names its 01/02/03 surface and reachable access point · [ ] freed assumption,
+anomaly, mechanism and control are recorded, or an honest negative is preserved · [ ] every idea's core claims
+entered in CLAIMS.md as falsifiable rows (status `open`) · [ ] KB position and public novelty re-check logged.
 
-**P3 Theory** — [ ] each theorem stated with all hypotheses · [ ] numerically checked (Sage/Python) on small cases ·
-[ ] load-bearing lemmas formalised or independently re-derived · [ ] parameter/security estimate reproduced with an
-estimator, cost model stated · [ ] lower bound or explicit "no bound known".
+**P3 Threat model + attack design** — [ ] attacker goal, knowledge, capabilities, access point, victim, success
+criterion, stealth/constraints, defenses and out-of-scope are frozen · [ ] `aa threat-check` is clean · [ ] access
+point is reachable without circular control · [ ] toy/mock pilot and judge rubric are recorded · [ ] harm and
+containment are written in `ETHICS.md`.
 
-**P4 Baselines** — [ ] each competitor pinned (url, commit/tag, build recipe) in `baselines/MANIFEST.md` ·
-[ ] baseline reproduces its paper's headline number within tolerance, or the discrepancy is documented ·
-[ ] build flags identical between baseline and ours.
+**P4 Baselines** — [ ] closest prior attack, no-attack, naive/plain-jailbreak control, static defense and adaptive
+attacker are named in `baselines/MANIFEST.md` · [ ] each executable baseline is pinned with url, commit/tag and
+recipe · [ ] model, task, framework, topology, budget and judge are comparable, or discrepancies are documented.
 
-**P5 Experiments** — [ ] bench protocol (machine, threads, pinning, warm-up, interleaving, repeats) fixed before
-running · [ ] every result in EVIDENCE.md with command/log/commit/machine/date/runs · [ ] control candidate measured ·
-[ ] component and end-to-end, absolute and relative.
+**P5 Experiments** — [ ] protocol fixes model snapshot, temperature, seeds, topology, framework, budget, interleaving,
+repeats and judge before running · [ ] every rate includes k/n and Wilson 95% CI · [ ] raw JSONL/cache records
+success, utility, false-trigger, detection/stealth, latency, tokens, queries and cost · [ ] human-label agreement and
+judge fingerprint are recorded · [ ] results cover no-attack, naive, proposed, defense and adaptive arms.
 
 **P6 Falsification** — [ ] falsifier ruled on every claim (no `open`) · [ ] refuted claims removed or reworded;
 weakened claims restated with their new scope · [ ] cost/price of each gain stated · [ ] PI decision in DECISIONS.md.
@@ -58,5 +60,5 @@ checkout · [ ] final novelty re-check (≤7 days before submission).
 
 ## Loops
 
-P6 may send work back to P2 (idea refuted), P3 (proof gap), or P5 (measurement gap). P8 may send back to P7 or P5.
-Every backward transition is a DECISIONS.md entry with the triggering claim/review id.
+P6 may send work back to P2 (idea pre-empted), P3 (threat-model or realism gap), or P5 (measurement or judge gap).
+P8 may send back to P7 or P5. Every backward transition is a DECISIONS.md entry with the triggering claim/review id.

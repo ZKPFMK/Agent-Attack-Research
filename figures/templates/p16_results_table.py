@@ -1,53 +1,47 @@
 #!/usr/bin/env python3
-"""P16 -- results table (booktabs): best per column in bold, runner-up underlined.
+"""A16 -- evidence-linked agent-attack results table.
 
-Pattern: methods as rows (ours last, separated by a \\midrule), metrics as
-columns with units and direction in the header ("time (s) down-arrow"); numbers
-right-aligned with the same number of decimals per column; best in bold,
-second best underlined; a speed-up column relative to a named baseline; a
-footnote row for "-" = not supported / out of memory.  Emits a table fragment
-(``p16_results_table.tex``) for \\input{} and, if pdflatex is available, a
-standalone PDF + PNG preview.  SYNTHETIC NUMBERS.
+Pattern: clean, naive, defense and proposed rows; ASR, benign utility and
+detection columns carry direction arrows. The arrays are synthetic placeholders;
+real tables must be generated from trials and linked to EVIDENCE IDs.
 """
 import sys, pathlib, shutil, subprocess, tempfile
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "style"))
 import palette as P
 
-COLS = [("Time (s)", "min", 2), ("Keys (MB)", "min", 0), ("Prec. (bits)", "max", 1)]
+COLS = [("ASR (\\%)", "max", 1), ("Utility (\\%)", "max", 1), ("Detect (\\%)", "min", 1)]
 ROWS = [
-    ("Baseline A", [18.40, 1210, 21.3]),
-    ("Baseline B", [11.95, 840, 19.8]),
-    ("Baseline C", [None, 520, 22.1]),
-    ("Ours", [6.02, 610, 22.4]),
+    ("Clean", [0.0, 100.0, 0.0]),
+    ("Naive injection", [24.0, 91.0, 38.0]),
+    ("Static defense", [13.0, 86.0, 82.0]),
+    ("Proposed attack", [51.0, 89.0, 44.0]),
 ]
 
 
 def fmt_table(rows=ROWS, cols=COLS, ref=0):
     arrows = {"min": r"$\downarrow$", "max": r"$\uparrow$"}
-    out = [r"\begin{tabular}{l" + "r" * (len(cols) + 1) + "}", r"\toprule",
-           "Method & " + " & ".join(f"{c} {arrows[d]}" for c, d, _ in cols) + r" & Speed-up \\", r"\midrule"]
+    out = [r"\begin{tabular}{l" + "r" * len(cols) + "}", r"\toprule",
+           "Arm & " + " & ".join(f"{c} {arrows[d]}" for c, d, _ in cols) + r" \\", r"\midrule"]
     ranks = []
-    for j, (_, d, _) in enumerate(cols):
-        vals = sorted({r[1][j] for r in rows if r[1][j] is not None}, reverse=(d == "max"))
-        ranks.append(vals[:2])
-    t_ref = rows[ref][1][0]
-    for i, (name, vals) in enumerate(rows):
+    for j, (_, direction, _) in enumerate(cols):
+        values = sorted({row[1][j] for row in rows if row[1][j] is not None}, reverse=(direction == "max"))
+        ranks.append(values[:2])
+    for i, (name, values) in enumerate(rows):
         if i == len(rows) - 1:
             out.append(r"\midrule")
         cells = []
-        for j, v in enumerate(vals):
-            if v is None:
+        for j, value in enumerate(values):
+            if value is None:
                 cells.append("--")
                 continue
-            s = f"{v:.{cols[j][2]}f}"
-            if v == ranks[j][0]:
-                s = r"\textbf{" + s + "}"
-            elif len(ranks[j]) > 1 and v == ranks[j][1]:
-                s = r"\underline{" + s + "}"
-            cells.append(s)
-        sp = "--" if vals[0] is None else f"{t_ref / vals[0]:.2f}$\\times$"
-        out.append(f"{name} & " + " & ".join(cells) + f" & {sp} \\\\")
+            cell = f"{value:.{cols[j][2]}f}"
+            if value == ranks[j][0]:
+                cell = r"\textbf{" + cell + "}"
+            elif len(ranks[j]) > 1 and value == ranks[j][1]:
+                cell = r"\underline{" + cell + "}"
+            cells.append(cell)
+        out.append(f"{name} & " + " & ".join(cells) + r" \\")
     out += [r"\bottomrule", r"\end{tabular}"]
     return "\n".join(out)
 
@@ -79,5 +73,5 @@ def make(venue="lncs", outdir=ROOT / "examples"):
 
 if __name__ == "__main__":
     t = fmt_table()
-    assert r"\textbf{6.02}" in t and r"\underline{11.95}" in t and r"\textbf{520}" in t, t
+    assert r"\textbf{51.0}" in t and r"\underline{24.0}" in t and r"\textbf{100.0}" in t, t
     P.cli(make, __doc__)

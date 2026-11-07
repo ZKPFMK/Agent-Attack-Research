@@ -1,67 +1,62 @@
 # 04 Our Contributions
 
-About one LNCS page: a lead-in sentence and three or four bullets (or bold-titled
+About a third of a page: a lead-in sentence and three or four bullets (or bold-titled
 paragraphs).
 
 ## Lead-in template
 
-> Inspired by <structural observation>, we determine <bound / characterisation>.
-> Building on it, we propose <framework/construction name> that <what it subsumes or
-> enables>. Our main contributions are summarised below:
+> Inspired by <observation about the trust assumption>, we show that <attacker with
+> access A> can <effect> in <victim class>. Our main contributions are:
 
-## Fixed order: structure → framework → algorithm → numbers
+## Fixed order: problem/surface → attack → evaluation → defenses/insight
 
-1. `\textbf{From <structure> to <new construction>.}` What structure was found; the
-   characterisation it yields; the new object it produces; one coverage sentence with
-   a single percentage or count (pointing to a table, not a lemma).
-2. `\textbf{A unified <framework>.}` Key observation → framework → where each prior
-   work sits inside it → why interior points beat the corners → "for any instance,
-   the best configuration is selected by a closed-form rule".
-3. `\textbf{A <algorithm> with <property>.}` "the first ... that exploits both ... at
-   once" → what it does → cost formula → the theory that supports it → optional "As a
-   bonus, ..." sentence.
-4. `\textbf{<Metric> improvements.}` Only the two most recognisable numbers, plus
-   "verified against the baselines in \Cref{tab:main}".
+1. `\textbf{A new attack surface / threat.}` The trust assumption, why it is
+   exploitable, and the threat model in one sentence (`\Cref{sec:threat}`).
+2. `\textbf{<Name>, an attack that <does X>.}` Its components (one clause per key
+   insight), the access it needs, and what distinguishes it from the closest prior
+   attack in one factual clause (`\Cref{sec:attack}`).
+3. `\textbf{Systematic evaluation.}` Scope (frameworks, models, benchmarks, topologies,
+   n) and the two most recognisable numbers with CI, against the strongest baseline
+   attack; utility and stealth in one clause (`\Cref{sec:eval}`, `\Cref{tab:main}`).
+4. `\textbf{Defenses and lessons.}` Which defenses were tested, the adaptive-attacker
+   result, the mitigation that helps and its utility cost; disclosure/artifact if
+   relevant (`\Cref{sec:defense}`).
 
-## Two formats
+Variants:
 
-- **A. `itemize`/`enumerate` bullets** when contributions are independent.
-- **B. Bold-titled paragraphs** ("Our first contribution is ...", "As a final
-  contribution, ...") when they build on one another; numbers can close each
-  paragraph.
-- **Roadmap style** (design papers): walk through the sections ("In Section 3 we
-  introduce ...; the rationale is developed in Section 4; ...") and embed the key
-  ratio in the evaluation sentence.
-- **One discovery, everything derived** (cryptanalysis papers): "Our main
-  contribution is the discovery of <property>, on which all our other results are
-  based." This is the strongest single-idea narrative.
+- **Benchmark papers:** benchmark → evaluation findings → analysis → tooling/release.
+- **Measurement papers:** phenomenon → controlled measurement → causal analysis →
+  implications for defenses.
+- **One discovery, everything derived:** "Our main finding is that <phenomenon>, on
+  which all other results build." Strong when the phenomenon is surprising and robust.
 
 ## Wording rules
 
-- **No Lemma/Theorem numbers** in contribution bullets; point to tables/figures
-  (`\Cref{tab:...}`). Contributions read as results, not as proof references.
-- **No concessions or comparisons** inside contributions; limitations go to the
-  overview remarks or the evaluation section.
-- **Numbers only in bullet 1 (a coverage percentage) and bullet 4 (ratios).**
-- Each bullet: verb + deliverable + section pointer; 3–5 sentences; intra-bullet
-  connectives "Building on", "More importantly", "Consequently".
-- Strong verbs in order of force: prove / establish / show that > identify / observe >
-  introduce / propose > give / provide > implement / measure / validate. Avoid
-  "study", "investigate", "explore", "try to".
-- The sentence "where each prior work sits" must be **identical in substance** in
-  contribution 2, the related-work bridge paragraph and the overview figure caption.
+- Each bullet: verb + deliverable + section pointer; 2–4 sentences.
+- **Numbers only in bullets 3 and 4**, each with an EVIDENCE row and an n/CI in the
+  body; put `\evid{E<n>}` after each and `\claimref{C<n>}` at the end of each bullet.
+- **No concessions** inside contributions; limitations go to §7.
+- Strong verbs in order of force: show / demonstrate (with evidence) > identify /
+  characterise > design / propose > evaluate / measure. Avoid "study", "investigate",
+  "explore", "try to".
+- "First" only if the KB position (`KB-POSITION.md`) and a recent `paper-search` sweep
+  support it; prefer "to our knowledge, the first ... under <threat model>".
+- The one-line delta to the closest prior attack must be **identical in substance** in
+  bullet 2, the related-work "Our work" paragraph and the comparison-table caption.
 
 ## Pre-flight
 
 Before prose: each bullet exists as a row in `CLAIMS.md` with status `survived` or
-`weakened` (then the bullet uses the weakened wording). Never promise a theorem the
-body does not contain.
+`weakened` (then the bullet uses the weakened wording). Typical weakened forms:
+"on 3 of 4 [ill.] victim models", "in the chain and star topologies (not complete
+graphs)", "against the evaluated defenses (an adaptive variant of D2 reduces ASR to
+…)".
 
 See `examples/toy_intro_and_contributions.md` for good/bad toy bullets.
 
 ## Checklist
 
-- [ ] 3–4 bullets in structure → framework → algorithm → numbers order.
-- [ ] No lemma numbers; numbers only in bullets 1 and 4.
+- [ ] 3–4 bullets in surface → attack → evaluation → defenses order.
+- [ ] Numbers only in bullets 3–4, each with `\evid`; each bullet with `\claimref`.
 - [ ] Every bullet has a CLAIMS row that survived falsification.
-- [ ] Placement-of-prior-work sentence consistent in three places.
+- [ ] Delta-to-closest-attack sentence consistent in three places.

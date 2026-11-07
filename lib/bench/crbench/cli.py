@@ -5,7 +5,7 @@ Sub-commands
 run         interleaved A/B/... benchmark:   crbench run -a base='./old' -a new='./new' -n 5 --log-dir results/x
 stats       summarise a sample or a run.json: crbench stats results/x/run.json --baseline base
 env         print environment snapshot:       crbench env --target ./build
-parse       parse a log with a parser:        crbench parse log.txt --parser criterion
+parse       parse a log with a parser:        crbench parse trials.jsonl --parser agent-jsonl
 parsers     list registered parsers
 table       run.json -> Markdown/LaTeX table: crbench table results/x/run.json --baseline base --latex
 evidence    ledger ops:  crbench evidence add EVIDENCE.md --printed '1.23 s' --command '...' --log results/x/run.json
@@ -154,7 +154,7 @@ def _cmd_stale(a) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="crbench", description="Crypto research benchmark harness")
+    p = argparse.ArgumentParser(prog="crbench", description="Agent-attack research measurement harness")
     p.add_argument("--version", action="version", version=__version__)
     sub = p.add_subparsers(dest="cmd", required=True)
 

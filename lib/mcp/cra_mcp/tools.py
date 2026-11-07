@@ -38,15 +38,16 @@ Phase = Literal["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]
 PhaseOrCurrent = Literal["current", "P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]
 Status = Literal["survived", "weakened", "refuted", "open"]
 StatusFilter = Literal["all", "open", "survived", "weakened", "refuted"]
-Agent = Literal["pi-orchestrator", "lit-scout", "math-librarian", "idea-miner", "theorist", "baseline-engineer",
+Agent = Literal["pi-orchestrator", "lit-scout", "kb-curator", "idea-miner", "threat-modeler", "baseline-engineer",
                 "experimenter", "falsifier", "writer", "figure-artist", "reviewer-sim", "submission-rebuttal"]
-Skill = Literal["abstract-craft", "anonymize-check", "artifact-pack", "baseline-pin", "bench-protocol", "bib-verify",
-                "camera-ready", "eprint-search", "experiments-writing", "falsify", "figure-harvest",
-                "idea-mining-loop", "lean-bridge", "lit-matrix", "log-to-evidence", "mock-review", "paper-figures",
-                "paper-playbook", "param-estimation", "phase-gate", "polish-writing", "reading-notes", "rebuttal",
-                "related-work-writing", "sage-check", "technique-overview", "textbook-index", "venue-calibration"]
-Board = Literal["STATE.md", "CLAIMS.md", "EVIDENCE.md", "DECISIONS.md", "IDEAS.md", "LITERATURE.md", "MATH-REFS.md",
-                "THEORY.md", "REVIEWS.md", "SUBMISSION.md", "refs.bib", "bib-verify-report.md",
+Skill = Literal["abstract-craft", "adaptive-eval", "anonymize-check", "artifact-pack", "attack-kb", "baseline-pin",
+                "bib-verify", "camera-ready", "ethics-disclosure", "eval-protocol", "experiments-writing", "falsify",
+                "figure-harvest", "idea-mining-loop", "judge-validation", "lit-matrix", "log-to-evidence",
+                "mas-testbed", "mock-review", "paper-figures", "paper-playbook", "paper-search", "phase-gate",
+                "polish-writing", "reading-notes", "rebuttal", "related-work-writing", "technique-overview",
+                "threat-model", "venue-calibration"]
+Board = Literal["STATE.md", "CLAIMS.md", "EVIDENCE.md", "DECISIONS.md", "IDEAS.md", "LITERATURE.md", "KB-POSITION.md",
+                "THREAT-MODEL.md", "ETHICS.md", "REVIEWS.md", "SUBMISSION.md", "refs.bib", "bib-verify-report.md",
                 "baselines/MANIFEST.md", "workflows/PHASES.md"]
 
 # files only the typed tools may change (so their invariants cannot be bypassed via file_write)
@@ -161,7 +162,7 @@ def build_tools(ctx: Context) -> list[ToolSpec]:
 
     @tool("skill_guide", "Load a skill procedure", read_only=True)
     def skill_guide(skill: Skill, offset: int = 0) -> dict:
-        """Return a skill's step-by-step procedure (SKILL.md), e.g. falsify, bib-verify, bench-protocol,
+        """Return a skill's step-by-step procedure (SKILL.md), e.g. falsify, threat-model, eval-protocol, bib-verify,
         paper-playbook. Scripts it mentions live under skills/<name>/scripts/ of the toolkit."""
         with open(os.path.join(ctx.toolkit, "skills", skill, "SKILL.md"), encoding="utf-8") as fh:
             return ok(_page(fh.read(), offset))
@@ -204,7 +205,7 @@ def build_tools(ctx: Context) -> list[ToolSpec]:
     def claim_verdict(claim_id: str, status: Status, evidence: str, refs: str = "", weakened_wording: str = "",
                       decision: str = "") -> dict:
         """Record the falsifier's ruling on a claim. survived/weakened need `evidence` (what was tried, with
-        script/log paths) and `refs` (EVIDENCE/THEORY ids, e.g. 'E3, THEORY T1'); weakened needs
+        script/log paths) and `refs` (EVIDENCE/THREAT-MODEL ids, e.g. 'E3, THREAT-MODEL TM1'); weakened needs
         `weakened_wording` (the narrower statement that IS defensible); refuted needs the counterexample in
         `evidence`. Reviving a refuted claim needs `decision` = a DECISIONS id."""
         try:
@@ -292,7 +293,7 @@ def build_tools(ctx: Context) -> list[ToolSpec]:
     # ------------------------------------------------------------------ literature
     @tool("bib_verify", "Verify refs.bib", read_only=False, idempotent=True, open_world=True)
     def bib_verify(only: str = "", offline: bool = False) -> dict:
-        """Check every refs.bib entry against IACR ePrint / Crossref / DBLP and write bib-verify-report.md
+        """Check every refs.bib entry against DBLP / Crossref / arXiv and write bib-verify-report.md
         (stamped with the bib's sha256 for the P8 gate). `only`: comma-separated keys for a quick re-check
         (does not stamp). Entries not VERIFIED must be fixed or removed, never guessed."""
         P = ctx.P
@@ -307,16 +308,33 @@ def build_tools(ctx: Context) -> list[ToolSpec]:
         return ok({"report": r["stdout"], "stderr": r["stderr"][-1500:]},
                   violations=[f"{k}: {s}" for s, k in bad] or ([r["stderr"][-300:]] if r["exit"] not in (0, 1) else []))
 
-    @tool("eprint_search", "Search IACR ePrint / DBLP", read_only=True, open_world=True, profiles=("full",))
-    def eprint_search(query: str, months: int = 12, dblp: bool = False) -> dict:
-        """Novelty / pre-emption search on IACR ePrint (optionally DBLP) for the last `months` months. Record
-        what you reviewed in LITERATURE.md's novelty log."""
-        args = [query, "--months", str(months), "--json"] + (["--dblp"] if dblp else [])
-        r = ctx.script("skills/eprint-search/scripts/eprint_search.py", args)
+    @tool("paper_search", "Search arXiv / DBLP / Semantic Scholar", read_only=True, open_world=True, profiles=("full",))
+    def paper_search(query: str, months: int = 12, source: str = "all") -> dict:
+        """Novelty / pre-emption search for the last `months` months (source: all|arxiv|dblp|s2). Agent-attack
+        work moves fast: re-run within 30 days of any novelty verdict and record what you reviewed in
+        LITERATURE.md's novelty log."""
+        args = [query, "--months", str(months), "--json"] + (["--source", source] if source != "all" else [])
+        r = ctx.script("skills/paper-search/scripts/paper_search.py", args)
         try:
             return ok(json.loads(r["stdout"]))
         except json.JSONDecodeError:
             return ok(r, violations=[] if r["exit"] == 0 else [r["stderr"][-300:]])
+
+    @tool("kb_search", "Search the user's attack knowledge base", read_only=True, profiles=("full",))
+    def kb_search(query: str, k: int = 5, kb_path: str = "") -> dict:
+        """Which papers in the user's knowledge base (KB) are nearest to `query` (Chinese or English)? The KB
+        path comes from `kb_path`, $CRA_KB or the `kb:` line in STATE.md. Use before claiming novelty and
+        record the neighbours + one-line delta in KB-POSITION.md."""
+        try:
+            from agentattack import kb as _kb
+        except ImportError:
+            return refused("agentattack not installed: pip install -e <toolkit>/lib/agentattack")
+        path = _kb.resolve_kb(kb_path or None, ctx.P.root)
+        if not path:
+            return refused("no knowledge base: pass kb_path, set CRA_KB, or add 'kb: <path>' to STATE.md")
+        hits = _kb.search(_kb.parse_kb(path), query, k)
+        return ok([{"score": sc, "key": p.key, "title": p.title or p.heading, "venue_year": p.venue_year,
+                    "category": p.category, "summary": p.summary[:600], "code": p.code, "pdf": p.pdf} for sc, p in hits])
 
     @tool("lit_matrix_check", "Lint the related-work matrix", read_only=True, profiles=("full",))
     def lit_matrix_check(max_novelty_age_days: int = 30) -> dict:
@@ -329,12 +347,39 @@ def build_tools(ctx: Context) -> list[ToolSpec]:
         return ok(r, violations=[] if r["exit"] == 0 else ["lit-matrix lint failed (see stdout)"])
 
     # ------------------------------------------------------------------ analysis helpers
-    @tool("param_estimate", "Core-SVP screen for LWE", read_only=True, profiles=("full",))
-    def param_estimate(n: int, log2q: float, sigma: float, secret_sigma: float = 0.0) -> dict:
-        """Quick core-SVP security screen for LWE(n, q=2^log2q, sigma) (primal uSVP, GSA). A screen, not a
-        security proof: confirm with the lattice-estimator before quoting any number."""
-        args = [str(n), str(log2q), str(sigma)] + (["--secret-sigma", str(secret_sigma)] if secret_sigma else [])
-        return ok(ctx.script("skills/param-estimation/scripts/core_svp_screen.py", args))
+    @tool("rate_ci", "Success rates with Wilson 95% CIs", read_only=True, profiles=("full",))
+    def rate_ci(trials: str, by: str = "", key: str = "success") -> dict:
+        """ASR / utility / false-trigger rates from a trials jsonl (one record per trial, as written by
+        agentattack.runner.run_matrix), grouped by comma-separated fields in `by`. Every rate in the paper
+        needs n and a CI: cite the `aa rate ... --log` output in an EVIDENCE row."""
+        try:
+            from agentattack import metrics as _m
+            from agentattack.runner import load_records
+        except ImportError:
+            return refused("agentattack not installed: pip install -e <toolkit>/lib/agentattack")
+        path = ctx.P.path(trials)
+        if not os.path.exists(path):
+            return refused(f"{trials} not found in the project")
+        recs = load_records(path)
+        cols = [b for b in by.split(",") if b.strip()]
+        rows = _m.rate_table(recs, cols, key) if cols else [{"rate": _m.rate(recs, key)}]
+        return ok([{**{c: r[c] for c in cols}, **r["rate"].as_dict()} for r in rows])
+
+    @tool("threat_check", "Validate a threat-model JSON", read_only=True, profiles=("full",))
+    def threat_check(path: str = "threat-model.json") -> dict:
+        """Mechanical checks of a structured threat model (fields of agentattack.threat_model.ThreatModel:
+        goal, target_system, access_point, knowledge, capabilities, constraints, success_criterion, victims,
+        defenses, out_of_scope, surface). Realism still needs the threat-modeler's argument in THREAT-MODEL.md."""
+        try:
+            from agentattack.threat_model import ThreatModel
+        except ImportError:
+            return refused("agentattack not installed: pip install -e <toolkit>/lib/agentattack")
+        try:
+            tm = ThreatModel.load(ctx.P.path(path))
+        except (OSError, ValueError) as e:
+            return refused(str(e))
+        issues = tm.validate()
+        return ok({"markdown": tm.to_markdown()}, violations=issues)
 
     @tool("audit_tex", "Audit a .tex file against EVIDENCE", read_only=True, profiles=("full",))
     def audit_tex(tex: str = "paper/main.tex", strict: bool = False) -> dict:

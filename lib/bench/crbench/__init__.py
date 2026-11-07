@@ -1,4 +1,7 @@
-"""crbench -- a small, dependency-light benchmark harness for crypto research.
+"""crbench -- a small, dependency-light measurement harness + EVIDENCE ledger.
+
+In agent-attack projects, success rates come from ``aa rate`` (lib/agentattack); crbench is used for
+the EVIDENCE ledger, ``audit-tex``, and timing/latency/overhead measurements of attacks and defenses.
 
 Modules
 -------
@@ -6,7 +9,7 @@ stats      median / IQR / bootstrap CI / speedup-with-CI
 runner     interleaved A/B/... subprocess runner with warm-up and repeats
 envcapture machine / compiler / git / env-var snapshot
 lock       advisory file lock so two benches never overlap
-parsers    regex-based pluggable log-parser registry
+parsers    agent JSONL and common benchmark/resource log parsers
 tables     Markdown and LaTeX (booktabs) table generation with EVIDENCE footnotes
 evidence   EVIDENCE.md ledger reader/writer and the ``audit-tex`` checker
 cli        ``crbench`` command-line entry point

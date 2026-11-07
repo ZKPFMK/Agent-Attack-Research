@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cra-mcp"
 version = "0.2.0"
-description = "MCP server for crypto-research-agents: the research blackboard (claims, evidence, gates, phases) and the toolkit's checkers as Model Context Protocol tools, usable from Claude Code, Codex, Gemini CLI, Cursor, Cline, ChatGPT and any other MCP host."
+description = "MCP server for agent-attack-research-agents: the research blackboard (claims, evidence, gates, phases) and the toolkit's checkers as Model Context Protocol tools, usable from Claude Code, Codex, Gemini CLI, Cursor, Cline, ChatGPT and any other MCP host."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = ["cra-core>=0.2.0", "mcp>=2.0,<3", "uvicorn"]

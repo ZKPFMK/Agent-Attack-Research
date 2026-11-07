@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
-"""P04 -- parameter-plane feasibility region.
+"""A4 -- threat-model capability map.
 
-Pattern: x = ring dimension n (log2), y = modulus size log2 q.  Upper
-constraint: security (log q must stay below the lambda-bit curve); lower
-constraint: correctness (enough modulus for depth L).  The feasible set is a
-light tint between them; the chosen parameter is a single marked point with a
-label.  Security curves are labelled in-line.  TOY SECURITY MODEL -- replace
-by lattice-estimator output before publishing.
+Pattern: attacker query budget on the x-axis and a detector threshold on the
+y-axis. Shade the tested region and label out-of-scope cells. Replace every
+boundary with preregistered, evidence-linked conditions before publication.
 """
 import sys, pathlib
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -15,37 +12,36 @@ import palette as P
 import numpy as np
 
 
-def toy_max_logq(n, lam):
-    # TOY: log q_max grows ~linearly in n and ~1/lambda (shape only, not a real estimate)
-    return n * 3.5 / lam
+def attack_score(budget, adaptive=False):
+    score = 0.20 + 0.66 * (1.0 - np.exp(-budget / (34.0 if adaptive else 25.0)))
+    return score + (0.05 * np.log1p(budget) / np.log(65.0) if adaptive else 0.0)
 
 
 def make(venue="lncs", outdir=ROOT / "examples"):
-    logn = np.linspace(10, 16, 200)
-    n = 2 ** logn
+    budget = np.linspace(0, 64, 200)
+    threshold = 0.58 + 0.08 * np.sin(budget / 18.0)
+    fixed = attack_score(budget)
+    adaptive = attack_score(budget, adaptive=True)
     fig, ax = P.figure(venue, width="full", aspect=0.45)
-    need = 60 + 40 * 12      # toy: base + bits per level * depth
-    sec128 = toy_max_logq(n, 128)
-    ax.fill_between(logn, need, sec128, where=sec128 >= need, color=P.FEASIBLE, lw=0, label="feasible")
-    for lam, ls in [(80, (0, (1, 1.5))), (128, "-"), (192, (0, (4, 2)))]:
-        y = toy_max_logq(n, lam)
-        ax.plot(logn, y, color=P.INK_2 if lam != 128 else P.OURS_DARK, lw=0.9, linestyle=ls)
-        k = np.searchsorted(y, 1500)
-        k = min(k, len(logn) - 1)
-        ax.text(logn[k], y[k], rf" $\lambda={lam}$", color=P.INK_2, fontsize="small", va="bottom", ha="left",
-                rotation=0)
-    ax.axhline(need, color=P.CATEGORICAL[7], lw=0.9)
-    ax.text(10.05, need, " correctness: depth $L=12$", va="bottom", fontsize="small", color=P.INK)
-    ax.plot([15], [need + 180], marker="*", ms=9, color=P.ACCENT, mec="white", mew=0.6, zorder=5)
-    ax.annotate("chosen set", (15, need + 180), xytext=(8, -3), textcoords="offset points", ha="left", va="top",
-                fontsize="small")
-    ax.text(10.4, 1800, "insecure", color=P.INK_MUTED, fontsize="small", style="italic")
-    ax.text(15.3, 250, "incorrect", color=P.INK_MUTED, fontsize="small", style="italic")
-    ax.set_xticks(range(10, 17), [rf"$2^{{{k}}}$" for k in range(10, 17)])
-    ax.set_xlabel(r"ring dimension $n$")
-    ax.set_ylabel(r"$\log_2 q$")
-    ax.set_xlim(10, 16)
-    ax.set_ylim(0, 2000)
+    ax.fill_between(budget, threshold, 1.0, where=adaptive >= threshold, color=P.FEASIBLE,
+                    lw=0, alpha=0.75, label="effect observed")
+    ax.fill_between(budget, 0.0, threshold, color=P.NEUTRAL_MID, lw=0, alpha=0.8,
+                    label="below detector threshold")
+    ax.plot(budget, fixed, color=P.BASELINE_GREYS[0], lw=0.9, label="fixed attacker")
+    ax.plot(budget, adaptive, color=P.OURS_DARK, lw=1.0, label="adaptive attacker")
+    ax.plot(budget, threshold, color=P.CATEGORICAL[7], lw=0.9, linestyle="--", label="detector threshold")
+    primary = 32.0
+    primary_score = float(np.interp(primary, budget, adaptive))
+    ax.plot([primary], [primary_score], marker="*", ms=9, color=P.ACCENT, mec="white", mew=0.6, zorder=5)
+    ax.annotate("primary pilot", (primary, primary_score), xytext=(8, -3), textcoords="offset points",
+                ha="left", va="top", fontsize="small")
+    ax.text(3, 0.12, "below threshold", color=P.INK_MUTED, fontsize="small", style="italic")
+    ax.text(42, 0.90, "effect region", color=P.INK_MUTED, fontsize="small", style="italic")
+    ax.set_xlabel("attacker query budget")
+    ax.set_ylabel("attack score / detector threshold")
+    ax.set_xlim(0, 64)
+    ax.set_ylim(0, 1.02)
+    ax.legend(loc="lower right", fontsize="small", ncols=2)
     return P.save(fig, "p04_param_feasibility", outdir)
 
 

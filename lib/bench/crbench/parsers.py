@@ -1,27 +1,30 @@
 """Regex-based, pluggable log-parser registry.
 
 A *parser* turns raw tool output into a list of :class:`Record` objects with
-normalised units (time -> seconds, memory/traffic -> bytes, security -> bits).
+normalised units (time -> seconds and memory/traffic -> bytes). Agent trial
+JSONL also exposes success, utility, detection, token, query and cost metrics.
 
 Shipped parsers (names used by ``crbench parse --parser NAME``):
 
-``generic``           "time: 1.23 s", "Elapsed = 12 ms", "took 3.4sec", "RESULT name=... time=..."
-``criterion``         Rust criterion (TFHE-rs, arkworks, ...):  ``time:   [1.1 ms 1.2 ms 1.3 ms]``
-``gobench``           Go ``testing`` benchmarks (Lattigo, gnark): ``BenchmarkX-8  100  12345 ns/op``
-``gbench``            Google Benchmark console (OpenFHE/SEAL/HEXL benches): ``BM_X  123 ns  120 ns  1000``
-``helib``             HElib ``printAllTimers``: ``  name: 12.3 / 4 = 3.07   [file]``
-``openfhe``           OpenFHE example style ``<Label> time: 12.3 ms`` / ``... took 12 ms``
-``lattice-estimator`` ``usvp :: rop: ≈2^129.4, red: ..., β: 377, ...`` -> bits of security per attack
-``sat``               CaDiCaL / CryptoMiniSat / kissat: solve time + SAT/UNSAT status
-``mpspdz``            MP-SPDZ: ``Time = 0.12 seconds``, ``Data sent = 1.2 MB in ~10 rounds``
-``gnu-time``          ``/usr/bin/time -v``: wall clock and max RSS
+``agent-jsonl``        Agent-harness JSONL with latency, outcome and budget fields.
+``generic``            "time: 1.23 s", "Elapsed = 12 ms", "took 3.4sec", "RESULT name=... time=..."
+``criterion``          Rust Criterion output: ``time: [1.1 ms 1.2 ms 1.3 ms]``
+``gobench``            Go ``testing`` output: ``BenchmarkX-8  100  12345 ns/op``
+``gbench``             Google Benchmark output: ``BM_X  123 ns  120 ns  1000``
+``sat``                Solver-harness output: solve time plus SAT/UNSAT status
+``gnu-time``           ``/usr/bin/time -v``: wall clock and maximum RSS
+
+The registry intentionally contains no cryptography-specific parser. A research
+project may register a local parser for a pinned benchmark, but the resulting
+records must still be mapped to the Agent Attack evidence schema.
 
 Register your own with :func:`register_parser` (see ``tests/test_parsers.py``).
 """
 from __future__ import annotations
 
+import json
 import re
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from typing import Callable, Iterable
 
 TIME_UNITS = {
@@ -58,7 +61,7 @@ def to_bytes(value: float, unit: str) -> float:
 
 @dataclass
 class Record:
-    metric: str            # e.g. "time", "rop_bits", "max_rss", "sat_status"
+    metric: str            # e.g. "time", "success", "tokens", "max_rss", "sat_status"
     value: float | str
     unit: str              # normalised unit: "s", "B", "bits", "" ...
     label: str = ""        # benchmark / attack / timer name if the log provides one
@@ -124,6 +127,53 @@ def _lineno(text: str, pos: int) -> int:
     return text.count("\n", 0, pos) + 1
 
 
+# ---------------------------------------------------------------- agent JSONL
+_AGENT_KEYS = {
+    "success": "success", "utility": "utility", "stealth": "stealth", "detected": "detected",
+    "false_trigger": "false_trigger", "tokens": "tokens", "input_tokens": "input_tokens",
+    "output_tokens": "output_tokens", "queries": "queries", "cost": "cost",
+    "latency": "time", "latency_s": "time", "duration": "time", "duration_s": "time",
+    "time": "time",
+}
+_AGENT_TIME_MS = {"latency_ms", "duration_ms", "time_ms"}
+
+
+@register_parser("agent-jsonl", "Agent-harness JSONL: success/utility/detected, latency, tokens, queries and cost",
+                 sniff=r'^\s*\{.*"(?:success|utility|detected|latency|tokens|queries|cost)"')
+def parse_agent_jsonl(text: str) -> list[Record]:
+    """Parse one JSON object per line, as emitted by ``agentattack.runner``.
+
+    Unknown condition fields are deliberately ignored; they remain available in
+    the raw JSONL and should be grouped with ``aa rate`` rather than flattened
+    into a timing record.
+    """
+    out = []
+    for ln, raw in enumerate(text.splitlines(), 1):
+        if not raw.strip():
+            continue
+        try:
+            obj = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(obj, dict):
+            continue
+        label = str(obj.get("arm") or obj.get("attack") or obj.get("condition") or obj.get("task") or "")
+        for key, metric in _AGENT_KEYS.items():
+            if key not in obj or not isinstance(obj[key], (bool, int, float)):
+                continue
+            value = float(obj[key])
+            unit = ""
+            if metric == "time":
+                unit = "s"
+            out.append(Record(metric, value, unit, label, ln, raw.strip()))
+        for key in _AGENT_TIME_MS:
+            if isinstance(obj.get(key), (int, float)):
+                out.append(Record("time", float(obj[key]) * 1e-3, "s", label, ln, raw.strip()))
+        if isinstance(obj.get("status"), str):
+            out.append(Record("status", obj["status"], "", label, ln, raw.strip()))
+    return out
+
+
 # ---------------------------------------------------------------- generic
 _GENERIC = re.compile(
     rf"^(?P<label>[^\n:=]*?)\b(?:time|elapsed|took|duration|runtime|latency)\b\s*(?:\([^)]*\))?\s*[:=]?\s*(?P<value>{NUM})\s*(?P<unit>{TU})\b",
@@ -175,7 +225,7 @@ def parse_criterion(text: str) -> list[Record]:
     return out
 
 
-# ---------------------------------------------------------------- go test -bench (Lattigo, gnark)
+# ---------------------------------------------------------------- go test -bench
 _GOB = re.compile(rf"^(?P<label>Benchmark\S+?)(?:-\d+)?\s+(?P<iters>\d+)\s+(?P<value>{NUM})\s+ns/op(?P<rest>.*)$", re.M)
 
 
@@ -205,57 +255,7 @@ def parse_gbench(text: str) -> list[Record]:
     return out
 
 
-# ---------------------------------------------------------------- HElib timers
-_HELIB = re.compile(rf"^\s*(?P<label>[A-Za-z_][\w:<>~]*)\s*:\s*(?P<total>{NUM})\s*/\s*(?P<count>\d+)\s*=\s*(?P<avg>{NUM})", re.M)
-
-
-@register_parser("helib", "HElib printAllTimers: name: total / count = avg  (seconds)", sniff=r":\s*\S+\s*/\s*\d+\s*=\s*\S+\s+\[")
-def parse_helib(text: str) -> list[Record]:
-    out = []
-    for m in _HELIB.finditer(text):
-        ln = _lineno(text, m.start())
-        out.append(Record("time_total", float(m["total"]), "s", m["label"], ln, m.group(0).strip()))
-        out.append(Record("time", float(m["avg"]), "s", m["label"], ln))
-        out.append(Record("count", float(m["count"]), "", m["label"], ln))
-    return out
-
-
-# ---------------------------------------------------------------- OpenFHE example style
-_OFHE = re.compile(rf"^(?P<label>[^\n:]*?)\s*(?:time|took)\s*(?:\[\s*(?P<bunit>[a-zµμ]+)\s*\])?\s*[:=]?\s*(?P<value>{NUM})\s*(?P<unit>{TU})?\b", re.M | re.I)
-
-
-@register_parser("openfhe", "OpenFHE examples: '<Label> time: 12.3 ms', 'Bootstrapping time [ms]: 123'")
-def parse_openfhe(text: str) -> list[Record]:
-    out = []
-    for m in _OFHE.finditer(text):
-        unit = m["unit"] or m["bunit"]
-        if not unit:
-            continue
-        out.append(Record("time", to_seconds(float(m["value"]), unit), "s", m["label"].strip(" -:"), _lineno(text, m.start()), m.group(0).strip()))
-    return out
-
-
-# ---------------------------------------------------------------- lattice-estimator
-_LE = re.compile(rf"^\s*(?P<label>[\w\-]+)\s*::\s*rop:\s*[≈~]?\s*2\^(?P<value>{NUM})(?P<rest>[^\n]*)$", re.M)
-_BETA = re.compile(r"(?:β|beta):\s*(\d+)")
-
-
-@register_parser("lattice-estimator", "LWE.estimate output lines 'attack :: rop: ≈2^X, ... β: B'; value = log2(rop) bits", sniff=r"::\s*rop:")
-def parse_lattice_estimator(text: str) -> list[Record]:
-    out = []
-    for m in _LE.finditer(text):
-        ln = _lineno(text, m.start())
-        out.append(Record("rop_bits", float(m["value"]), "bits", m["label"], ln, m.group(0).strip()))
-        b = _BETA.search(m["rest"])
-        if b:
-            out.append(Record("beta", float(b.group(1)), "", m["label"], ln))
-    if out:
-        best = min((r for r in out if r.metric == "rop_bits"), key=lambda r: r.value)
-        out.append(Record("security_bits", best.value, "bits", f"min:{best.label}", best.line))
-    return out
-
-
-# ---------------------------------------------------------------- SAT solvers
+# ---------------------------------------------------------------- solver status
 _SAT_T = re.compile(
     rf"^c\s+(?:total process time since initialization|Total time(?: \(this thread\))?|process-time|total real time since initialization)\s*:?\s*(?P<value>{NUM})\s*(?P<unit>seconds|s)?",
     re.M | re.I,
@@ -263,32 +263,11 @@ _SAT_T = re.compile(
 _SAT_S = re.compile(r"^s\s+(SATISFIABLE|UNSATISFIABLE|UNKNOWN)\s*$", re.M)
 
 
-@register_parser("sat", "CaDiCaL/CryptoMiniSat/kissat 'c total process time ...' + 's SATISFIABLE'", sniff=r"^s\s+(?:UN)?SATISFIABLE")
+@register_parser("sat", "Solver-harness output: 'c total process time ...' plus 's SATISFIABLE'", sniff=r"^s\s+(?:UN)?SATISFIABLE")
 def parse_sat(text: str) -> list[Record]:
     out = [Record("time", float(m["value"]), "s", "solver", _lineno(text, m.start()), m.group(0).strip()) for m in _SAT_T.finditer(text)]
     for m in _SAT_S.finditer(text):
         out.append(Record("sat_status", m.group(1), "", "solver", _lineno(text, m.start()), m.group(0).strip()))
-    return out
-
-
-# ---------------------------------------------------------------- MP-SPDZ
-_MPS_T = re.compile(rf"^Time\s*=\s*(?P<value>{NUM})\s*seconds", re.M)
-_MPS_D = re.compile(rf"^Data sent\s*=\s*(?P<value>{NUM})\s*(?P<unit>[KMG]?B)(?:\s*in\s*~?(?P<rounds>\d+)\s*rounds)?", re.M)
-_MPS_G = re.compile(rf"^Global data sent\s*=\s*(?P<value>{NUM})\s*(?P<unit>[KMG]?B)", re.M)
-
-
-@register_parser("mpspdz", "MP-SPDZ: Time = X seconds; Data sent = X MB in ~R rounds; Global data sent", sniff=r"^Data sent\s*=")
-def parse_mpspdz(text: str) -> list[Record]:
-    out = []
-    for m in _MPS_T.finditer(text):
-        out.append(Record("time", float(m["value"]), "s", "party", _lineno(text, m.start()), m.group(0).strip()))
-    for m in _MPS_D.finditer(text):
-        ln = _lineno(text, m.start())
-        out.append(Record("comm", to_bytes(float(m["value"]), m["unit"]), "B", "party", ln, m.group(0).strip()))
-        if m["rounds"]:
-            out.append(Record("rounds", float(m["rounds"]), "", "party", ln))
-    for m in _MPS_G.finditer(text):
-        out.append(Record("comm_global", to_bytes(float(m["value"]), m["unit"]), "B", "all", _lineno(text, m.start()), m.group(0).strip()))
     return out
 
 
@@ -338,6 +317,6 @@ def values(records: Iterable[Record], metric: str = "time", label: str | None = 
 
 
 if __name__ == "__main__":
-    demo = "keygen time: 12.5 ms\nusvp :: rop: ≈2^131.2, red: ≈2^131.2, δ: 1.0040, β: 385, d: 1900, tag: usvp\n"
-    for r in parse_text(demo, ["generic", "lattice-estimator"]):
+    demo = '{"arm":"proposed","task":"tool-routing","latency_ms":12.5,"success":true,"tokens":384,"queries":2}\n'
+    for r in parse_text(demo, "agent-jsonl"):
         print(r)

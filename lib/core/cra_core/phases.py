@@ -1,59 +1,67 @@
-"""The P0..P8 pipeline (workflows/PHASES.md) as data: owner agents and gate checklists."""
+"""The P0..P8 pipeline (workflows/PHASES.md) as data: owner agents and gate checklists.
+
+Domain: attacks on LLM agents and LLM multi-agent systems (see SPEC.md section 5).
+"""
 from __future__ import annotations
 
 PHASE_INFO = {
     "P0": ("Scoping", ["pi-orchestrator"], [
-        "thesis is one falsifiable sentence, with a measurable target and the baseline value",
-        "venue + deadline set; current CFP read",
-        "in-scope / out-of-scope list written",
-        "compute / time budget set",
+        "thesis is one falsifiable sentence: target system class, attack goal, success metric and the baseline value",
+        "venue + deadline set; current CFP read (incl. ethics / open-science policy)",
+        "knowledge base path recorded (kb: line) and in-scope / out-of-scope list written",
+        "compute + API budget set (models, tokens, $)",
+        "ethics pre-screen: only owned or sandboxed targets, no real users / live third-party services",
         "kill criteria and kill date set"]),
-    "P1": ("Literature", ["lit-scout", "math-librarian"], [
-        "related-work matrix incl. 2-4 true competitors (LITERATURE.md)",
-        "novelty / pre-emption check <= 30 days old, verdict not 'taken'",
+    "P1": ("Literature & KB", ["lit-scout", "kb-curator"], [
+        "related-work matrix incl. 2-4 true competitors (LITERATURE.md), KB neighbours included",
+        "novelty / pre-emption check (KB + arXiv/OpenReview) <= 30 days old, verdict not 'taken'",
         "refs.bib passes bib-verify",
         "reading notes per competitor",
-        "strongest baseline named, with code status"]),
-    "P2": ("Ideation", ["idea-miner", "math-librarian"], [
-        "pre-gate sentence per idea (security-bearing vs substrate)",
-        "Gate A + Gate B recorded (or an honest negative)",
+        "strongest prior attack AND strongest relevant defense named, with code status"]),
+    "P2": ("Ideation", ["idea-miner", "kb-curator"], [
+        "pre-gate sentence per idea: surface/branch, nearest KB papers, one-line delta (KB-POSITION.md)",
+        "Gate A (freed assumption) + Gate B (pilot anomaly vs naive-injection baseline) recorded, or an honest negative",
         "core claims registered in CLAIMS.md as falsifiable rows with kill criteria",
         "novelty re-check of the chosen idea"]),
-    "P3": ("Theory", ["theorist", "math-librarian"], [
-        "all hypotheses explicit",
-        "every lemma numerically checked on small parameters (sage-check)",
-        "load-bearing lemmas formalised or independently re-derived",
-        "security / parameter estimate reproduced with a named cost model",
-        "lower bound stated, or 'none known'"]),
+    "P3": ("Threat model & attack design", ["threat-modeler", "kb-curator"], [
+        "THREAT-MODEL.md complete (goal, knowledge, capabilities, access point, victim, success criterion, "
+        "constraints, defenses, out-of-scope) and `aa threat-check` clean",
+        "realism argument: the access point is reachable without already holding what the attack grants",
+        "pilot: attack beats the naive baseline on >= 2 victim model families (EVIDENCE rows, with n)",
+        "success judge validated on a human-labelled pilot sample (kappa >= 0.7, judge fingerprint recorded)",
+        "ETHICS.md harm assessment + containment plan written"]),
     "P4": ("Baselines", ["baseline-engineer"], [
-        "competitors pinned in baselines/MANIFEST.md",
-        "headline numbers reproduced, or the discrepancy documented",
-        "identical build flags for all arms"]),
+        "prior attacks, defenses and benchmarks pinned in baselines/MANIFEST.md (commit, model snapshot, prompts, temperature)",
+        "headline numbers of the strongest baseline reproduced, or the discrepancy documented",
+        "identical victim configuration (models, tools, system prompts, budgets) across all arms"]),
     "P5": ("Experiments", ["experimenter"], [
-        "protocol fixed before running",
-        "interleaved runs, >= 3 repeats, medians; environment captured",
+        "evaluation protocol preregistered before running (grid, n per cell, seeds, temperature, judge, stopping rule)",
+        "every rate reported with n and a 95% CI; raw responses cached; environment captured",
         "every candidate paper number has an EVIDENCE row",
-        "control candidate measured; component + end-to-end, absolute + relative"]),
+        "benign utility (with and without attack), false-trigger rate, stealth and cost measured",
+        "defenses evaluated, including an adaptive attacker that knows the defense"]),
     "P6": ("Falsification", ["falsifier"], [
         "no open claims",
         "refuted claims removed from the narrative; weakened wording adopted",
-        "price of each gain stated",
+        "price of each result stated (access needed, detectability, cost, utility impact, model coverage)",
         "PI decision logged in DECISIONS.md"]),
     "P7": ("Writing + figures", ["writer", "figure-artist"], [
         "every number <-> EVIDENCE row (cra gate P7 --paper paper)",
         "every claim <-> survived/weakened CLAIMS row (\\claimref)",
+        "threat-model, limitations and ethics sections written from THREAT-MODEL.md / ETHICS.md",
         "figures generated by script from logged data",
         "related work written from the matrix"]),
     "P8": ("Review -> submit -> rebuttal -> camera-ready", ["reviewer-sim", "submission-rebuttal"], [
         "mock review answered",
         "bib-verify clean and fresh",
-        "anonymisation clean; page limit met",
+        "anonymisation clean; page limit met; venue checklists (ethics / responsible research) filled",
+        "responsible disclosure done or justified (ETHICS.md, DECISIONS.md); harmful payloads redacted",
         "artifact builds clean",
         "final novelty re-check <= 7 days old",
         "human approved anything that leaves the machine"]),
 }
 
-AGENTS = ["pi-orchestrator", "lit-scout", "math-librarian", "idea-miner", "theorist", "baseline-engineer",
+AGENTS = ["pi-orchestrator", "lit-scout", "kb-curator", "idea-miner", "threat-modeler", "baseline-engineer",
           "experimenter", "falsifier", "writer", "figure-artist", "reviewer-sim", "submission-rebuttal"]
 
 

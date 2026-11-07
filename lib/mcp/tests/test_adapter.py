@@ -11,7 +11,7 @@ from cra_mcp.adapter import FORMATS, ToolBox, convert
 from cra_mcp.agent import ChatClient, run
 from cra_mcp.server import tool_schemas
 
-CASE = os.path.join(toolkit_root(), "case-study", "toy-mvpbs")
+CASE = os.path.join(toolkit_root(), "case-study", "toy-agent-attack")
 
 
 @pytest.fixture

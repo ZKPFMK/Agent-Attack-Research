@@ -30,8 +30,8 @@ COMPILERS = (
     ("cargo", ["cargo", "--version"]),
     ("go", ["go", "version"]),
     ("cmake", ["cmake", "--version"]),
-    ("sage", ["sage", "--version"]),
-    ("lean", ["lean", "--version"]),
+    ("node", ["node", "--version"]),
+    ("docker", ["docker", "--version"]),
 )
 
 

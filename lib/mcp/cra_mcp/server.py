@@ -1,4 +1,4 @@
-"""cra-mcp -- run the crypto-research-agents MCP server.
+"""cra-mcp -- run the agent-attack-research-agents MCP server.
 
     cra-mcp --project ~/papers/my-paper                      # stdio (Claude Code, Codex, Cline, Cursor, ...)
     cra-mcp --project . --profile full                       # all tools
@@ -32,7 +32,8 @@ from . import __version__
 from .tools import PROFILES, RULES, Context, build_tools, select
 
 INSTRUCTIONS = (
-    "cra = crypto-research-agents: a falsify-first pipeline for cryptography papers (phases P0-P8, "
+    "cra = agent-attack-research-agents: a falsify-first pipeline for papers on attacks against LLM agents "
+    "and multi-agent systems (phases P0-P8, "
     "blackboard files in the project). Call cra_resume first in every session; it returns the phase, "
     "gate status and the next tasks with the tool to call. " + RULES + " Use role_card(<agent>) to adopt a role "
     "and skill_guide(<skill>) for procedures."
@@ -41,7 +42,7 @@ INSTRUCTIONS = (
 
 def build_server(project: str, profile: str = "core", actor: str = "mcp") -> MCPServer:
     ctx = Context(project, actor=actor)
-    srv = MCPServer(name="cra", title="crypto-research-agents", version=__version__, instructions=INSTRUCTIONS)
+    srv = MCPServer(name="cra", title="agent-attack-research-agents", version=__version__, instructions=INSTRUCTIONS)
     for t in select(build_tools(ctx), profile):
         ann = ToolAnnotations(title=t.title, read_only_hint=t.read_only, destructive_hint=t.destructive,
                               idempotent_hint=t.idempotent, open_world_hint=t.open_world)

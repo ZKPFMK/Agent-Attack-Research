@@ -5,11 +5,11 @@ is **never committed**: the images belong to their authors.  Commit only notes
 written in your own words, e.g. in `figures/PATTERNS.md` or in a project's
 `paper/figs/NOTES.md`, using this template.
 
-| # | pattern (see PATTERNS.md) | source (public ePrint ID, fig.) | what works | what to avoid | template |
+| # | pattern (see PATTERNS.md) | source (public paper id, fig.) | what works | what to avoid | template |
 |---|---|---|---|---|---|
-| 1 | C1 speed-up bars | e.g. 20XX/NNNN Fig. 3 | baseline is a line, not a bar | value on every bar | p01 |
+| 1 | A1 effectiveness bars | e.g. KB id / ACL / OpenReview Fig. 3 | controls, n and CI are visible | a bare ASR bar | p01 |
 
 Regenerate the gallery:
 
-    python3 figures/harvester/harvest.py CORPUS_DIR --out /tmp/crypto_gallery
-    python3 figures/harvester/gallery.py /tmp/crypto_gallery   # open index.html
+    python3 figures/harvester/harvest.py CORPUS_DIR --out /tmp/agent_attack_figures
+    python3 figures/harvester/gallery.py /tmp/agent_attack_figures   # open index.html

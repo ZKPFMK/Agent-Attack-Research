@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""P15 -- repeated-run distributions for an A/B benchmark.
+"""A15 -- repeated interleaved trial distributions.
 
-Pattern: for each workload, the individual runs (jittered dots) of A and B side
-by side with median and inter-quartile range; the median ratio with a
-bootstrap 95% CI is printed above each pair.  This is the figure a falsifier
-wants: it shows run-to-run spread, not just a single bar.  SYNTHETIC RUNS.
+Pattern: individual synthetic runs of a control and proposed arm with median,
+IQR and a bootstrap interval. Show run-to-run spread and state warm-up/cache
+policy before replacing these arrays with logged measurements.
 """
 import sys, pathlib
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -20,7 +19,7 @@ def boot_ci(a, b, rng, B=2000):
 
 def make(venue="lncs", outdir=ROOT / "examples"):
     rng = np.random.default_rng(2)
-    loads = ["KeyGen", "Encrypt", "Mult+Relin", "Bootstrap"]
+    loads = ["Task A", "Task B", "Task C", "Task D"]
     base = np.array([12.0, 3.1, 8.4, 410.0])
     gain = np.array([1.05, 1.3, 1.8, 2.3])
     fig, axs = P.figure(venue, width="full", aspect=0.36, ncols=4)
@@ -40,7 +39,7 @@ def make(venue="lncs", outdir=ROOT / "examples"):
         ax.set_xlim(-0.5, 1.5)
         ax.set_ylim(0, None)
         ax.tick_params(axis="x", length=0)
-    axs[0].set_ylabel("time (ms), 31 interleaved runs")
+    axs[0].set_ylabel("latency (ms), 31 interleaved runs")
     return P.save(fig, "p15_bench_distribution", outdir)
 
 

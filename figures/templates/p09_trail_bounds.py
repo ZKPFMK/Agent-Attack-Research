@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""P09 -- trail-probability bound vs. number of rounds (security margin).
+"""A9 -- sensitivity curve across attack conditions.
 
-Pattern: step plot of the proven lower bound on -log2(best trail probability)
-(= weight) per round count for differential and linear trails; horizontal
-line at the security level (key/state size); the first round that crosses it is
-marked; the gap to the full cipher round count is the "security margin" bracket.
-SYNTHETIC BOUNDS (shape only).
+Pattern: plot synthetic success or detection across rounds/budget conditions;
+mark the preregistered primary cell and the point where the effect weakens.
+The curve is an illustration, not a security bound.
 """
 import sys, pathlib
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -15,25 +13,25 @@ import numpy as np
 
 
 def make(venue="lncs", outdir=ROOT / "examples"):
-    r = np.arange(1, 17)
-    active_d = np.array([1, 2, 5, 9, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56])
-    active_l = np.array([1, 2, 4, 8, 11, 14, 18, 21, 25, 28, 32, 35, 39, 42, 46, 49])
-    wd, wl = 2 * active_d, 2 * active_l        # toy: each active S-box costs >= 2 bits
-    sec, full = 64, 16
+    rounds = np.arange(1, 17)
+    naive = np.array([.08, .12, .17, .22, .28, .33, .37, .40, .43, .45, .47, .48, .49, .50, .50, .51])
+    proposed = np.array([.12, .20, .29, .38, .47, .55, .62, .67, .71, .74, .76, .78, .79, .80, .80, .81])
+    defended = np.array([.05, .07, .09, .12, .15, .18, .20, .21, .22, .22, .23, .23, .24, .24, .24, .25])
+    threshold = 0.50
     fig, ax = P.figure(venue, width="full", aspect=0.42)
-    ax.step(r, wd, where="mid", color=P.OURS, marker="o", ms=3, label="differential")
-    ax.step(r, wl, where="mid", color=P.ACCENT, marker="s", ms=3, linestyle="--", label="linear")
-    ax.axhline(sec, color=P.INK_2, lw=0.8)
-    ax.text(0.7, sec + 2, f"security level $2^{{-{sec}}}$", fontsize="small", color=P.INK_2)
-    first = int(r[np.argmax(np.minimum(wd, wl) >= sec)])
+    ax.step(rounds, naive, where="mid", color=P.BASELINE_GREYS[0], marker="o", ms=3, label="naive injection")
+    ax.step(rounds, proposed, where="mid", color=P.OURS, marker="o", ms=3, label="proposed attack")
+    ax.step(rounds, defended, where="mid", color=P.ACCENT, marker="s", ms=3, linestyle="--", label="static defense")
+    ax.axhline(threshold, color=P.INK_2, lw=0.8)
+    ax.text(0.7, threshold + 0.02, "primary success threshold", fontsize="small", color=P.INK_2)
+    first = int(rounds[np.argmax(proposed >= threshold)])
     ax.axvline(first, color=P.INK_MUTED, lw=0.6, linestyle=(0, (1, 1.5)))
-    ax.annotate("", xy=(full, 108), xytext=(first, 108),
-                arrowprops=dict(arrowstyle="<->", lw=0.7, color=P.INK, shrinkA=0, shrinkB=0))
-    ax.text((first + full) / 2, 111, f"margin: {full - first} rounds", ha="center", fontsize="small")
-    ax.set_xlabel("rounds $r$")
-    ax.set_ylabel(r"$-\log_2 p$ (lower bound)")
-    ax.set_xticks(r)
-    ax.set_ylim(0, 125)
+    ax.annotate("primary budget", xy=(first, threshold), xytext=(first + 1, threshold - 0.12),
+                arrowprops=dict(arrowstyle="->", lw=0.7, color=P.INK_MUTED), fontsize="small")
+    ax.set_xlabel("message rounds")
+    ax.set_ylabel("attack success rate")
+    ax.set_xticks(rounds)
+    ax.set_ylim(0, 0.9)
     ax.legend(loc="upper left", bbox_to_anchor=(0, 0.93))
     return P.save(fig, "p09_trail_bounds", outdir)
 

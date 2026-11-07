@@ -1,42 +1,61 @@
 #!/usr/bin/env python3
-"""P11 -- polynomial approximation: target + error on log scale (small multiples).
+"""A11 -- judge agreement or rubric-threshold error curve.
 
-Pattern: top panel shows the target function and one approximation over the
-evaluation interval; bottom panel (shared x) shows log10 |error| for several
-degrees, direct-labelled; the precision target is a horizontal line.  Never plot
-the error on a linear axis.  Toy target: sin(2 pi x)/(2 pi) on [-K, K].
+Pattern: top panel shows reference human labels and judge scores; bottom panel
+shows agreement and kappa as the rubric threshold changes. Report kappa,
+precision, recall and F1 from the labelled sample alongside the figure.
 """
 import sys, pathlib
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "style"))
 import palette as P
 import numpy as np
-from numpy.polynomial import chebyshev as C
+
+
+def kappa(gold, pred):
+    gold = np.asarray(gold, dtype=int)
+    pred = np.asarray(pred, dtype=int)
+    po = float(np.mean(gold == pred))
+    pg = np.bincount(gold, minlength=2) / len(gold)
+    pp = np.bincount(pred, minlength=2) / len(pred)
+    pe = float(np.dot(pg, pp))
+    return (po - pe) / (1.0 - pe) if pe < 1.0 else 1.0
 
 
 def make(venue="lncs", outdir=ROOT / "examples"):
-    K = 6
-    f = lambda x: np.sin(2 * np.pi * x) / (2 * np.pi)
-    x = np.linspace(-K, K, 4000)
-    fig, (a1, a2) = P.figure(venue, width="full", aspect=0.62, nrows=2, sharex=True,
+    rng = np.random.default_rng(13)
+    count = 40
+    ids = np.arange(count)
+    judge_score = np.clip(np.linspace(0.03, 0.97, count) + rng.normal(0, 0.09, count), 0, 1)
+    human = (np.linspace(0.03, 0.97, count) > 0.56).astype(int)
+    thresholds = np.linspace(0.15, 0.85, 29)
+    agreement, kappas = [], []
+    for threshold in thresholds:
+        pred = (judge_score >= threshold).astype(int)
+        agreement.append(np.mean(pred == human))
+        kappas.append(kappa(human, pred))
+    default = 0.55
+    default_pred = (judge_score >= default).astype(int)
+    fig, (a1, a2) = P.figure(venue, width="full", aspect=0.62, nrows=2, sharex=False,
                              gridspec_kw={"height_ratios": [1, 1.6]})
-    a1.plot(x, f(x), color=P.INK_MUTED, lw=1.6, label="target")
-    degs = [31, 47, 63]
-    for i, d in enumerate(degs):
-        p = C.Chebyshev.interpolate(f, d, domain=[-K, K])
-        err = np.abs(p(x) - f(x)) + 1e-18
-        if d == degs[-1]:
-            a1.plot(x, p(x), color=P.OURS, lw=0.8, linestyle="--", label=f"degree {d}")
-        a2.semilogy(x, err, color=P.CATEGORICAL[i], lw=0.7)
-        P.direct_label(a2, K, err[-200:].max(), f"$d={d}$", dx=3)
-    a2.axhline(2 ** -20, color=P.INK_2, lw=0.7)
-    a2.text(-K, 2 ** -20, r" target $2^{-20}$", va="top", fontsize="small", color=P.INK_2,
-            bbox=dict(facecolor="white", edgecolor="none", pad=0.5))
-    a1.legend(loc="upper right", ncols=2)
-    a1.set_ylabel("$f(x)$")
-    a2.set_ylabel(r"$|p(x)-f(x)|$")
-    a2.set_xlabel("$x$")
-    a2.set_xlim(-K, K * 1.13)
+    a1.scatter(ids, human, s=14, color=P.BASELINE_GREYS[0], label="human label", zorder=3)
+    a1.scatter(ids, judge_score, s=10, color=P.OURS, label="judge score", zorder=2)
+    a1.axhline(default, color=P.INK_MUTED, lw=0.7, linestyle="--")
+    a1.set_ylim(-0.08, 1.08)
+    a1.set_ylabel("label / score")
+    a1.set_title(f"default agreement = {100 * np.mean(default_pred == human):.1f}%",
+                 loc="left", fontsize="small", color=P.INK_2)
+    a1.legend(loc="upper left", ncols=2, fontsize="small")
+    a2.plot(thresholds, agreement, color=P.OURS, lw=1.0, label="accuracy")
+    a2.plot(thresholds, kappas, color=P.ACCENT, lw=1.0, linestyle="--", label="Cohen's kappa")
+    a2.axvline(default, color=P.INK_MUTED, lw=0.7)
+    a2.axhline(0.7, color=P.INK_2, lw=0.7, linestyle=(0, (3, 2)))
+    a2.text(default + 0.015, 0.71, "$\\kappa=0.7$ review threshold", fontsize="small", color=P.INK_2)
+    a2.set_xlabel("positive-label threshold")
+    a2.set_ylabel("agreement")
+    a2.set_xlim(0.1, 0.9)
+    a2.set_ylim(0, 1.02)
+    a2.legend(loc="lower left")
     return P.save(fig, "p11_approx_error", outdir)
 
 

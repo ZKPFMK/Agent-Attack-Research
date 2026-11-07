@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """gallery.py -- build a local HTML contact sheet from a harvest index.
 
-    python3 gallery.py /tmp/crypto_gallery            # writes /tmp/crypto_gallery/index.html
+    python3 gallery.py /tmp/agent_attack_figures      # writes /tmp/agent_attack_figures/index.html
     python3 gallery.py GALLERY --min-quality 60 --top 40
     python3 gallery.py --selftest
 
@@ -21,8 +21,8 @@ from pathlib import Path
 
 TYPE_ORDER = [
     "plot-bar", "plot-line", "plot-scaling", "heatmap-matrix", "table-like",
-    "protocol-flow", "architecture-pipeline", "circuit-cipher", "lattice-geometric",
-    "tree-graph", "pseudocode-box", "other",
+    "message-flow", "agent-architecture", "state-machine", "topology-graph",
+    "pseudocode-box", "other",
 ]
 
 CSS = """

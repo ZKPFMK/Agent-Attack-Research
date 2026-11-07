@@ -50,8 +50,8 @@ TEX_EXT = {".tex", ".sty", ".cls", ".ltx"}
 BIB_EXT = {".bib"}
 TEXT_EXT = {
     ".py", ".c", ".cc", ".cpp", ".cxx", ".h", ".hpp", ".rs", ".go", ".java", ".js",
-    ".ts", ".sage", ".m", ".jl", ".sh", ".bash", ".zsh", ".md", ".txt", ".rst",
-    ".json", ".yaml", ".yml", ".toml", ".cfg", ".ini", ".cmake", ".mk", ".lean",
+    ".ts", ".m", ".jl", ".sh", ".bash", ".zsh", ".md", ".txt", ".rst",
+    ".json", ".yaml", ".yml", ".toml", ".cfg", ".ini", ".cmake", ".mk",
     ".csv", ".log", ".ipynb", ".r", ".pl",
 }
 TEXT_NAMES = {"Makefile", "CMakeLists.txt", "Dockerfile", "README", "LICENSE", "config"}
@@ -68,9 +68,11 @@ PERSONAL_HOST_RE = re.compile(
 DEFAULT_ALLOW_URL = [
     r"anonymous\.4open\.science",
     r"doi\.org",
-    r"eprint\.iacr\.org",
-    r"iacr\.org",
     r"arxiv\.org",
+    r"aclanthology\.org",
+    r"openreview\.net",
+    r"semanticscholar\.org",
+    r"dblp\.org",
     r"ctan\.org",
 ]
 LOCAL_PATH_RE = re.compile(
@@ -176,7 +178,7 @@ def scan_text(text: str, where: str, ext: str, deny: DenyList, allow: list[re.Pa
         if deny:
             for term in deny.hits(line):
                 if is_bib and not comment:
-                    # IACR-style rules: self-citations in 3rd person keep real authors in .bib
+                    # Bibliographies may retain named third-person citations when the venue permits them.
                     out.append(Finding("LOW", "deny-term-in-bib", where, i, f"'{term}': {snippet}"))
                 else:
                     out.append(Finding(_scale("HIGH", delta), "deny-term", where, i, f"'{term}': {snippet}"))
@@ -378,28 +380,28 @@ def run(paths: list[str], deny: DenyList, allow_urls: list[str], min_sev: str = 
 def selftest() -> int:
     """Build a synthetic submission and check that the scanner catches each leak class."""
     # TOY: synthetic identities only
-    tex = r"""\documentclass{llncs}
-\title{Packed Test Polynomials}
-\author{Alice Example\inst{1}}
-\institute{Example University, \email{alice@uni.example.net}}
+    tex = r"""\documentclass{article}
+\title{Synthetic Agent Evaluation}
+\author{Alice Example}
+\affiliation{Example University}
+\email{alice@uni.example.net}
 \begin{document}
-As shown in our previous work~\cite{ex24}, packing helps.
-Code: \url{https://github.com/aexample/lutpack} and \url{https://anonymous.4open.science/r/lutpack-1234}.
-Third party: \url{https://github.com/thirdparty/lib}.
-% compiled from /home/aexample/papers/lut
+As shown in our previous work~\cite{ex24}, the relay is robust.
+Code: \url{https://github.com/aexample/agent-eval} and \url{https://anonymous.4open.science/r/agent-eval-1234}.
+Third party: \url{https://github.com/thirdparty/agent-harness}.
+% compiled from /home/aexample/projects/agent-eval
 \section*{Acknowledgements} We thank Bob. This work was supported by grant no. 42.
 \end{document}
 """
-    clean = r"""\documentclass[runningheads]{llncs}
-\title{Packed Test Polynomials}
+    clean = r"""\documentclass{article}
+\title{Synthetic Agent Evaluation}
 \author{Anonymous Submission}
-\institute{}
 \begin{document}
-As shown by Example et al.~\cite{ex24}, packing helps.
-Code: \url{https://anonymous.4open.science/r/lutpack-1234}.
+As shown by Example et al.~\cite{ex24}, the relay is robust.
+Code: \url{https://anonymous.4open.science/r/agent-eval-1234}.
 \end{document}
 """
-    bib = "@misc{ex24, author={Alice Example and Carol Other}, title={{PBS} tricks}, year={2024}}\n"
+    bib = "@misc{ex24, author={Alice Example and Carol Other}, title={Agent evaluation}, year={2024}}\n"
     code = "# author: aexample\nDATA = '/home/aexample/data'\n"
     with tempfile.TemporaryDirectory() as td:
         d = Path(td) / "leaky"
@@ -419,7 +421,7 @@ Code: \url{https://anonymous.4open.science/r/lutpack-1234}.
         deny = DenyList(["Alice Example", "aexample", "Example University"])
         f_leaky = run([str(d), str(zpath)], deny, [])
         kinds = {f.kind for f in f_leaky}
-        expected = {"deny-term", "email", "tex-\\author", "tex-\\institute", "first-person-self-cite",
+        expected = {"deny-term", "email", "tex-\\author", "tex-\\affiliation", "first-person-self-cite",
                     "url-deny-term", "local-path", "acknowledgements", "funding-statement",
                     "vcs-dir-in-archive", "deny-term-in-bib", "personal-host-url"}
         missing = expected - kinds

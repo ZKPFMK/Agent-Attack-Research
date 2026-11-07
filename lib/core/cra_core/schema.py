@@ -21,7 +21,7 @@ CLAIM_HINTS = [
     ("claim", _starts("claim", "statement")),
 ]
 CLAIM_HEADER = ["ID", "claim (precise, falsifiable, with parameter range)", "proposer", "status",
-                "falsifier evidence / counterexample", "EVIDENCE / THEORY refs"]
+                "falsifier evidence / counterexample", "EVIDENCE / THREAT-MODEL refs"]
 
 EVIDENCE_HINTS = [
     ("id", _is("id")),

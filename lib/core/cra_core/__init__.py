@@ -1,4 +1,4 @@
-"""cra_core -- the single structured read/write path for a crypto-research-agents blackboard.
+"""cra_core -- the single structured read/write path for a agent-attack-research-agents blackboard.
 
 Markdown stays the canonical, human-readable storage (no format migration); this package
 parses it losslessly, enforces the invariants that used to live only in prompts, allocates

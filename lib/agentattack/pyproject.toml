@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentattack"
+version = "0.1.0"
+description = "Evaluation toolkit for research on attacks against LLM agents and multi-agent systems: ASR with Wilson/bootstrap CIs, LLM-judge validation, structured threat models, knowledge-base search, mock/OpenAI-compatible/cached LLM backends, a multi-agent propagation testbed and a resumable trial runner. Stdlib only."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+license = {text = "MIT"}
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+aa = "agentattack.cli:main"
+
+[tool.setuptools]
+packages = ["agentattack"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

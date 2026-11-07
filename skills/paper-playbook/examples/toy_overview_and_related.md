@@ -1,62 +1,72 @@
-# Toy technique overview and related-work table
+# Toy attack overview, threat-model box and related-work table
 
-Invented papers; all numbers and citations illustrative.
+Invented papers; all systems synthetic; all numbers and citations illustrative.
 
-## Related-work table (T3, PSI)
+## Related-work table (T1, RelayRumor)
 
 ```latex
 \begin{table}[t]
-\centering\scriptsize
-\caption{Asymptotic comparison of unbalanced PSI protocols. $n$: server set size;
-$m$: client set size; $\sigma$: statistical security; $\lambda$: computational
-security. $\dagger$: semi-honest only. $\ddagger$: requires FHE.}
+\centering\small
+\caption{Attacks closest to RelayRumor. Access: what the attacker controls.
+\checkmark: evaluated; --: not evaluated. Adaptive: evaluated against a defender
+that knows the attack. Marks follow each paper's own evaluation, not our reruns.}
 \label{tab:related}
-\renewcommand{\arraystretch}{0.92}
-\begin{tabular}{llccc}
+\renewcommand{\arraystretch}{0.92}\setlength{\tabcolsep}{3pt}
+\begin{tabular}{llcccc}
 \toprule
-Technique & Method & Communication & Server comp. & Rounds \\
+Attack & Access & MAS & Multi-hop & Stealth eval & Adaptive def. \\
 \midrule
-\multirow{2}{*}{OPRF-based} & [E21]$^\dagger$ & $O(n\,(\sigma+\log nm))$ & $O(n)$ & 2 \\
-                            & [G23]          & $O(n\,\sigma)$           & $O(n)$ & 2 \\
+[A24] & orchestrator prompt     & \checkmark & --         & --         & -- \\
+[B25] & one agent, instruction  & \checkmark & \checkmark & --         & -- \\
+[G25] & message channel (MitM)  & \checkmark & \checkmark & \checkmark & -- \\
 \midrule
-FHE-based & [F22]$^\ddagger$ & $O(m\log n)$ & $O(n)$ HE ops & 1 \\
-\midrule
-\textbf{Ours} & & $O(n\,\sigma/c)$ & $O(n)$ & 2 \\
+\textbf{Ours} & one relay's output only & \checkmark & \checkmark & \checkmark & \checkmark \\
 \bottomrule
 \end{tabular}
 \end{table}
 ```
 
-Rules shown: caption defines every symbol; daggers mark scope; last row "Ours"
-matches the formula in the abstract.
+Rules shown: caption defines every mark and its source; "Access" column states the
+assumption reviewers care about; the "Ours" row matches contribution 2 and the
+threat model.
 
-## Contrasting-verb bullets (T1)
+## Threat-model box (T1)
 
-> Recently, two independent lines of work exploit the structure of the test
-> polynomial rather than its degree alone:
-> - **Multi-value PBS** restricts *what* is encoded: several tables share one
->   polynomial whose coefficients factor through a common term [A23]; however, it
->   requires tables with a common factor, leaving general tables open.
-> - **Tree-based PBS** restricts *how* a table is read: a large table is split into
->   levels evaluated by successive rotations [B24]; the number of rotations grows with
->   the table size.
+```latex
+\noindent\fbox{\parbox{0.96\linewidth}{\small
+\textbf{Goal.} The final agent outputs verdict FALSE for a true claim $c$
+(programmatic check against the gold label).
+\textbf{Knowledge.} Black-box: the attacker sees only $m_1$ (its input); it does not
+know other agents' prompts or models.
+\textbf{Capability.} Replaces its own output $m_2$; one attempt per task.
+\textbf{Constraints.} $|m_2'| \le 1.2\,|m_2|$; benign accuracy on other claims
+within 3 points.
+\textbf{Out of scope.} Orchestrator compromise; base-model jailbreaks; real users.}}
+```
 
-## Bad vs good overview headings
+## Contrasting-mechanism bullets (related work, T2)
+
+> Prior attacks on tool-using agents differ in *when* adversarial content is read:
+> - **Output-side injection** places instructions in what a tool *returns* [C24];
+>   it requires the agent to call the tool first and is screened by output detectors.
+> - **Description-side poisoning** places content in what the agent reads *before*
+>   choosing a tool [H25]; prior work evaluates selection, not the downstream data flow.
+
+## Bad vs good insight headings
 
 | bad | good |
 |---|---|
-| "Why packing is needed" | "Window width, not table count, bounds the packing factor." |
-| "Where the cost goes" | "Output separation is linear and therefore free of bootstrapping." |
-| "The SAT model" | "Clustering turns a trail search into a model-counting problem." |
-| "Our hashing" | "Fingerprint length alone fixes the false-positive rate." |
+| "Evidence anchoring" | "Agents rarely re-check a claim that cites a true source." |
+| "Why hedging helps" | "Hedged claims survive paraphrase; assertive ones get corrected." |
+| "Tool selection" | "Agents rank tools by description overlap with the task, not by provenance." |
+| "Our memory trick" | "The agent's own summaries launder attacker queries into trusted records." |
 
-## Tiny worked example (T2)
+## Tiny pilot example (T1)
 
-> Take the 4-bit S-box S = [6,4,12,5,0,7,2,14,1,15,3,13,8,10,9,11] [ill.]. Its DDT has
-> maximum entry 4 [ill.], so a single-trail bound gives 2^{-2} per active S-box. The
-> input difference 0x3 maps to 0x3 with probability 2^{-2} [ill.] through two rounds
-> via 4 [ill.] distinct characteristics, so the differential probability is 2^{-1}
-> [ill.], a factor of 2 [ill.] above the single-trail bound.
+> On a pilot set of 50 [ill.] synthetic claims (held out from evaluation), a3 re-checked
+> the relayed claim in 31 of 50 [ill.] runs without a citation and in 9 of 50 [ill.]
+> runs with a true but irrelevant citation (E3).
 
-Every number in such an example must be recomputable by a script (e.g. with the
-`cryptomath.symmetric` DDT helper) listed in `EVIDENCE.md`.
+Every number in such an example must be recomputable from logged transcripts by a
+script listed in `EVIDENCE.md` (e.g. one that calls
+`agentattack.metrics.rate_table(records, by="citation", key="rechecked")`).

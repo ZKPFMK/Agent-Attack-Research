@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""P14 -- parameter-sweep heatmap with the optimum outlined.
+"""A14 -- two-factor attack configuration sweep.
 
-Pattern: two discrete tuning knobs on the axes, cost in each cell (value
-printed, one decimal), a single-hue sequential ramp where darker = worse (or
-better -- say which in the colour-bar label), infeasible cells hatched grey
-rather than coloured, and the optimum cell outlined.  SYNTHETIC COSTS.
+Pattern: message placement by corroboration count, with rates printed in cells;
+missing/out-of-scope cells are hatched and the pre-registered cell is outlined.
+SYNTHETIC VALUES.
 """
 import sys, pathlib
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -16,8 +15,8 @@ from matplotlib.patches import Rectangle
 
 
 def make(venue="lncs", outdir=ROOT / "examples"):
-    ells = np.arange(1, 9)          # gadget digits
-    ks = np.arange(1, 7)            # key-switching keys
+    ells = np.arange(1, 9)          # message placement buckets
+    ks = np.arange(1, 7)            # corroborating peers
     L, K = np.meshgrid(ells, ks)
     cost = 3.0 * L + 18.0 / L + 1.4 * K + 10.0 / K + 0.3 * L * K
     infeasible = (L * K > 30)
@@ -36,8 +35,8 @@ def make(venue="lncs", outdir=ROOT / "examples"):
     ax.add_patch(Rectangle((j - .5, i - .5), 1, 1, fill=False, edgecolor=P.ACCENT, lw=1.6))
     ax.set_xticks(range(len(ells)), ells)
     ax.set_yticks(range(len(ks)), ks)
-    ax.set_xlabel(r"number of gadget digits $\ell$")
-    ax.set_ylabel("number of keys $k$")
+    ax.set_xlabel("message placement bucket")
+    ax.set_ylabel("corroborating peers")
     ax.grid(False)
     ax.tick_params(length=0)
     for sp in ax.spines.values():

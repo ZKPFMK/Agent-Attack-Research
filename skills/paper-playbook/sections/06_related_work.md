@@ -2,58 +2,60 @@
 
 Full procedure: [related-work-writing](../../related-work-writing/SKILL.md).
 
-## Organise by axis, not by time
+## Organise by surface/axis, not by time
 
-Place all prior work on one or two **axes** (e.g. "reduce the degree" vs "reduce the
-evaluation cost"; "reduce rounds" vs "reduce bandwidth"). A comparison table places
-each work at a coordinate; the "Ours" row occupies the region no one else does. The
-section itself then argues "prior work sits on the boundary, we are in the interior".
+Place prior work along the axes reviewers use to judge attack novelty, typically
+(a) **attack surface / access point** (user prompt, external content and web,
+tool descriptions and MCP servers, GUI/visual input, memory and RAG, training data,
+inter-agent messages, a participating agent) and (b) **attacker capability /
+knowledge** (white-box, gray-box, black-box; query budget; number of controlled
+components). The KB taxonomy (`KB-POSITION.md`) gives the branch for each work. A
+comparison table places each work in its cell; the "Ours" row occupies the cell no
+one else does, and the table's other columns check the properties that matter
+(multi-agent? propagation across hops? stealth evaluated? adaptive defense
+evaluated? real framework?).
 
-## Structure (≈ 2 LNCS pages)
+## Structure (≈ 1 page two-column)
 
 ```
-[lead-in, 3 sentences]  We overview prior optimisations for <task>, focusing on
-                        <bottleneck>. Accelerating (1) follows two paths: <axis 1> and
-                        <axis 2>. Table 1 summarises the asymptotic comparison.
-[Table 1]               columns: Technique | Method | <cost measure 1> | <cost 2> | <coordinate>
-                        rows grouped by technique; last row \textbf{Ours}; caption defines
-                        every symbol; † ‡ footnotes mark scope restrictions.
-[¶ axis 1, classic]     one sentence per work: authors + what + cost; last sentence states
-                        what all of them still share ("... at a cost that still grows
-                        with <parameter>").
-[¶ recent, both axes]   "Recently, two independent lines of work exploit <structure>
-                        rather than <old measure>:" then two bullets, each built on a pair
-                        of contrasting verbs (e.g. "restricts *where* ..." vs "restricts
-                        *how* ...").
-[¶ bridge]              \textbf{Insight from <structure>.} Why the two lines are compatible
-                        (one algebraic/structural reason), where each prior work sits in
-                        our framework, back-reference to Table 1.
-[¶ Our work]            five sentences: framework + three technical points joined by
-                        colons/commas + one results sentence. This is the elevator pitch.
-[¶ orthogonal]          "Complementary approaches" (alternative pipelines, other schemes)
-                        in 2–3 sentences, labelled as complementary.
+[lead-in, 2-3 sentences]  Attacks on LLM agents can be organised by where adversarial content
+                          enters and what the attacker controls [survey refs]. Table 1 places
+                          prior attacks closest to ours.
+[Table 1]                 rows: prior attacks (+ venue'year), last row \textbf{Ours}; columns:
+                          surface | access/knowledge | MAS? | multi-hop? | stealth eval |
+                          adaptive-defense eval | framework(s); caption defines all marks.
+[¶ surface A]             one sentence per work: what it injects, where, under what access,
+                          what it shows; last sentence states what all of them share.
+[¶ surface B]             same.
+[¶ defenses]              defenses relevant to our setting (detectors, prompt hardening,
+                          isolation/privilege separation, monitor agents), labelled as such;
+                          forward pointer to §6 where they are evaluated.
+[¶ Our work]              3-4 sentences: the cell we occupy and the one-line delta to the
+                          closest prior attack (identical to contribution 2).
+[¶ concurrent]            "Concurrent work." for works within ~3 months of the deadline.
 ```
 
 ## Rules
 
-- Judge prior work only by **factual limitations**: "they instantiate a single
-  case, leaving open ...", "the required correction is assumed rather than shown to
-  exist". Never "unfortunately", "fail to", "naive".
-- Give each prior work's cost in its concrete form (e.g. O(√(pe))) and verify it
-  against the original paper, not a secondary description.
-- The "Ours" row equals, character for character, the formula in the abstract,
-  contribution 3 and the body proposition.
+- Judge prior work only by **factual scope**: "assumes white-box access to the
+  victim", "evaluates a single agent", "does not report utility under attack". Never
+  "naive", "fail", "unrealistic" as an adjective (show the access assumption instead).
+- Every characterisation (ASR, setting, access) is checked against the **original
+  paper**, not a survey or a later paraphrase; record page/section in `LITERATURE.md`.
+- If you quote another paper's ASR, quote its scope (models, judge, benchmark) too, or
+  do not quote it. Cross-paper ASR comparisons are rarely like-for-like; prefer
+  running the baseline yourself (`baseline-pin`).
+- Benchmarks (e.g. AgentDojo, NeurIPS'24 Datasets & Benchmarks) and defenses are cited
+  in their own paragraphs, not mixed with attacks.
 - Your own earlier papers appear in the third person and receive the same factual
-  critique as anyone else's.
-- When you restate a prior work's bottleneck, reread **that paper's own experiments
-  section**; the bottleneck it states about itself is often different from how later
-  papers paraphrase it, and misattribution is easy to catch.
-- Concurrent work gets its own short labelled paragraph ("Concurrent work.").
+  critique.
+- Name papers in prose by first author or system name; use the KB id
+  (`<yy>_<venue>_<slug>`) in internal notes only.
 
 ## Checklist
 
-- [ ] Organised by axis; Table 1 with an "Ours" row.
-- [ ] Contrasting verb pair used for parallel routes.
-- [ ] Bridge paragraph + "Our work" paragraph present.
-- [ ] Each cost formula verified against the source paper.
+- [ ] Organised by surface/capability; Table 1 with an "Ours" row.
+- [ ] Each characterisation verified against the source paper (noted in LITERATURE.md).
+- [ ] Defenses and benchmarks in separate paragraphs.
+- [ ] "Our work" delta identical to contribution 2 and the table caption.
 - [ ] No evaluative adjectives about others.

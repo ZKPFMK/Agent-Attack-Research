@@ -193,7 +193,7 @@ class Project:
                 raise CraError(f"{cid} is refuted; reviving it needs a DECISIONS id (decision='D-n')")
             new_refs = refs if refs is not None else t.value(row, "refs")
             if status in ("survived", "weakened") and not new_refs.strip():
-                raise CraError(f"a '{status}' claim needs EVIDENCE/THEORY refs (e.g. 'E3, THEORY T1')")
+                raise CraError(f"a '{status}' claim needs EVIDENCE/THREAT-MODEL refs (e.g. 'E3, THREAT-MODEL TM1')")
             t.set(row, "status", status)
             prev = t.value(row, "falsifier").strip()
             stamp = f"[{_today()} {self.actor}] {evidence.strip()}"

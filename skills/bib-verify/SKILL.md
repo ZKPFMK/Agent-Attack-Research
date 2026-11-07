@@ -1,6 +1,6 @@
 ---
 name: bib-verify
-description: Verify every BibTeX entry against IACR ePrint, Crossref/DataCite and DBLP and flag fabricated, garbled or placeholder references. Use before any draft leaves the machine, after any agent adds citations, and as the P1 and P8 gate item.
+description: Verify every BibTeX entry against arXiv, ACL Anthology/OpenReview, Crossref/DataCite and DBLP and flag fabricated, garbled or placeholder references. Use before any draft leaves the machine, after any agent adds citations, and as the P1 and P8 gate item.
 ---
 
 # bib-verify
@@ -8,7 +8,7 @@ description: Verify every BibTeX entry against IACR ePrint, Crossref/DataCite an
 A fabricated reference is a research-integrity failure, not a typo. Typical LLM-era failure modes seen in
 practice: invented co-author lists on a real paper; a placeholder like `{Chen and others}` + a journal name
 propping up a row of a comparison table and a "nobody has done X" claim; a key that points at a *different*
-paper by the same group; an ePrint number written from memory that belongs to another paper. When this repo's
+paper by the same group; an arXiv/prarXiv number written from memory that belongs to another paper. When this repo's
 own reading lists were drafted from memory, the verifier caught three such errors out of ~110 entries.
 
 ## Procedure
@@ -17,8 +17,13 @@ own reading lists were drafted from memory, the verifier caught three such error
    ```bash
    python3 skills/bib-verify/scripts/verify_bib.py refs.bib --json bib-verify.json > bib-verify-report.md
    ```
-   Resolution order: ePrint id (from `eprint=`, `url=`, `howpublished=`...) → OAI record; `doi=` → Crossref,
+   Resolution order: arXiv id or DOI (from `arXiv=`, `url=`, `howpublished=`...) → public API record; `doi=` → Crossref,
    then DataCite (Zenodo/LIPIcs/arXiv DOIs); otherwise a title search (DBLP if it answers, else Crossref).
+The default Agent Attack sources are arXiv, ACL Anthology, OpenReview, Crossref/DataCite and DBLP. The checker still
+understands IACR ePrint identifiers for legacy projects and old blackboards; ePrint is compatibility support, not a
+default search source for this repository. Keep an ePrint-only entry only when the cited work actually belongs to the
+project's source corpus, and record why it is retained.
+
 2. Triage every non-`VERIFIED` row by hand:
    | status | meaning | action |
    |---|---|---|
@@ -37,8 +42,8 @@ own reading lists were drafted from memory, the verifier caught three such error
 
 ## Rules
 
-- Prefer the published version (DOI) for the final paper; keep the ePrint id in `eprint=` so it can be re-checked.
-- Never "fill in" missing authors from memory. Copy from the ePrint/DOI landing page.
+- Prefer the published version (DOI) for the final paper; keep the arXiv id or DOI in `arXiv=` so it can be re-checked.
+- Never "fill in" missing authors from memory. Copy from the arXiv/prarXiv/DOI landing page.
 - Anything added without checking gets a `% UNVERIFIED` line directly above the entry until verified.
 - Venue strings are not machine-verified; check them on the DOI landing page.
 - Offline: `--offline` still runs the static lint; the gate stays closed until an online run passes.

@@ -14,7 +14,7 @@ from cra_core.schema import CLAIM_HINTS, EVIDENCE_HINTS
 from cra_core.toolkit import init_project, toolkit_root
 
 ROOT = toolkit_root()
-CASE = os.path.join(ROOT, "case-study", "toy-mvpbs")
+CASE = os.path.join(ROOT, "case-study", "toy-agent-attack")
 
 
 @pytest.mark.parametrize("path", sorted(glob.glob(os.path.join(ROOT, "case-study", "**", "*.md"), recursive=True)
@@ -37,10 +37,10 @@ def test_edit_touches_only_the_changed_row():
 
 def test_case_study_parses():
     p = Project(CASE)
-    assert p.phase() == "P8"
-    assert [c.id for c in p.claims()] == [f"C{i}" for i in range(1, 7)]
-    assert {c.status for c in p.claims()} == {"survived", "weakened", "refuted"}
-    assert len(p.evidence()) == 22
+    assert p.phase() == "P6"
+    assert [c.id for c in p.claims()] == ["C1"]
+    assert {c.status for c in p.claims()} == {"survived"}
+    assert len(p.evidence()) == 1
 
 
 def test_case_study_gates_pass():
@@ -67,7 +67,7 @@ def test_init_project_passes_its_own_checks(proj):
 
 def test_claim_lifecycle_and_rules(proj):
     c1 = proj.add_claim("For all n <= 64 the method needs <= n/2 rotations", "idea-miner", kill="one n with more")
-    c2 = proj.add_claim("The method is optimal among all linear schedules", "theorist")
+    c2 = proj.add_claim("The method is optimal among all linear schedules", "threat-modeler")
     assert (c1, c2) == ("C1", "C2")
     with pytest.raises(CraError):
         proj.add_claim("short", "x")
@@ -81,8 +81,8 @@ def test_claim_lifecycle_and_rules(proj):
     assert c.status == "weakened" and "Adopted weakened wording" in c.claim
     proj.set_verdict(c2, "refuted", "counterexample schedule in falsify/C2/x.log")
     with pytest.raises(CraError, match="DECISIONS"):
-        proj.set_verdict(c2, "survived", "new proof", refs="THEORY T2")
-    assert proj.set_verdict(c2, "survived", "new proof", refs="THEORY T2", decision="D-3").status == "survived"
+        proj.set_verdict(c2, "survived", "new proof", refs="THREAT-MODEL TM2")
+    assert proj.set_verdict(c2, "survived", "new proof", refs="THREAT-MODEL TM2", decision="D-3").status == "survived"
     acts = [e["action"] for e in proj.events()]
     assert acts.count("claim.register") == 2 and acts.count("claim.verdict") == 3
     assert all(e["actor"] == "tester" for e in proj.events())
@@ -173,7 +173,7 @@ def test_phase_advance_tick_waive_and_decisions(proj):
         proj.advance_phase("P1", "skip the scoping gate")
     with pytest.raises(CraError, match="skip"):
         proj.advance_phase("P3", "jump ahead three phases")
-    for it in ("falsifiable", "venue", "in-scope", "budget"):
+    for it in ("falsifiable", "venue", "knowledge base", "budget", "ethics pre-screen"):
         proj.tick_gate_item("P0", it)
     with pytest.raises(CraError, match="DECISIONS id"):
         proj.tick_gate_item("P0", "kill", waive_reason="toy")

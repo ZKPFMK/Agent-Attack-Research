@@ -1,15 +1,12 @@
 # CRA Studio
 
-CRA Studio is a local desktop workbench for crypto-research-agents.
-- It ships as **one executable** that is also the `cra` MCP server, the `cra` CLI and `cra-agent`.
-- The model endpoint is an open interface: any OpenAI-compatible base URL, API key and model id.
-
-Guide: [docs/studio.md](../../docs/studio.md) · 中文: [docs/zh/studio.md](../../docs/zh/studio.md)
+CRA Studio is a local workbench for agent-attack research projects: blackboard ledgers, phase gates, files and an
+OpenAI-compatible local model endpoint. It does not run attacks against live third-party services.
 
 ```bash
-pip install -e lib/core -e lib/bench -e lib/mcp -e lib/studio
-cra-studio                       # opens http://127.0.0.1:8770/#t=<session token>
-pyinstaller packaging/cra-studio.spec --noconfirm   # -> dist/CRA-Studio(.exe)
+pip install -e lib/core -e lib/agentattack -e lib/bench -e lib/mcp -e lib/studio
+cra-studio
+pyinstaller packaging/cra-studio.spec --noconfirm
 ```
 
-Tests: `cd lib/studio && python3 -m pytest -q`.
+Guide: [docs/studio.md](../../docs/studio.md) · Chinese: [docs/zh/studio.md](../../docs/zh/studio.md)

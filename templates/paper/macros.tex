@@ -1,51 +1,9 @@
-% macros.tex -- notation conventions (keep in sync with paper/NOTATION.md).
-% Rule: one concept, one macro. Change the macro, never the call sites.
-
-% ---- number sets and rings
-\newcommand{\NN}{\mathbb{N}}
-\newcommand{\ZZ}{\mathbb{Z}}
-\newcommand{\QQ}{\mathbb{Q}}
-\newcommand{\RR}{\mathbb{R}}
-\newcommand{\FF}{\mathbb{F}}
-\newcommand{\Fp}{\mathbb{F}_p}
-\newcommand{\Zq}{\mathbb{Z}_q}
-\newcommand{\Rq}{\mathcal{R}_q}                 % R_q = Z_q[X]/(Phi_m(X))
-\newcommand{\Torus}{\mathbb{T}}
-
-% ---- vectors, matrices, distributions
-\newcommand{\vc}[1]{\mathbf{#1}}                  % vectors bold lower-case
-\newcommand{\mat}[1]{\mathbf{#1}}                 % matrices bold upper-case
-\newcommand{\sample}{\xleftarrow{\$}}
-\newcommand{\Dist}{\mathcal{D}}
-\newcommand{\negl}{\mathsf{negl}}
-\newcommand{\secpar}{\lambda}
-
-% ---- algorithms and schemes (sans-serif names)
-\newcommand{\alg}[1]{\mathsf{#1}}
-\newcommand{\KeyGen}{\alg{KeyGen}}
-\newcommand{\Enc}{\alg{Enc}}
-\newcommand{\Dec}{\alg{Dec}}
-\newcommand{\Eval}{\alg{Eval}}
-\newcommand{\ct}{\mathsf{ct}}
-\newcommand{\pk}{\mathsf{pk}}
-\newcommand{\sk}{\mathsf{sk}}
-
-% ---- complexity and cost (one paper-wide cost currency)
-\newcommand{\cost}{\operatorname{cost}}
-\newcommand{\bigO}{O}
-\DeclareMathOperator{\poly}{poly}
-
-% ---- scheme / library names (text)
-\newcommand{\TFHE}{\textsf{TFHE}}
-\newcommand{\BGV}{\textsf{BGV}}
-\newcommand{\CKKS}{\textsf{CKKS}}
-\newcommand{\PSI}{\textsf{PSI}}
-
-% ---- provenance tags (render nothing; checked by `crbench audit-tex` and the P7 gate)
-\newcommand{\evid}[1]{}                          % usage: 3.4$\times$\evid{E12}  (number -> EVIDENCE row)
-\newcommand{\ev}[1]{\evid{#1}}                   % short alias of \evid
-\newcommand{\claimref}[1]{}                      % usage: ...sentence.\claimref{C4}  (statement -> CLAIMS row,
-                                                 %  must be survived/weakened; comma lists allowed)
-
-% ---- drafting helpers (remove before submission; grep for TODO)
+% Provenance macros. They render empty but are checked by the P7 gate.
+\newcommand{\evid}[1]{}
+\newcommand{\ev}[1]{\evid{#1}}
+\newcommand{\claimref}[1]{}
 \newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\agent}{\textsc{Agent}}
+\newcommand{\mas}{\textsc{MAS}}
+\newcommand{\asr}{\mathrm{ASR}}
+\newcommand{\naive}{\textsc{Naive}}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""verify_bib.py -- check every BibTeX entry against IACR ePrint / Crossref / DBLP.
+"""verify_bib.py -- check every BibTeX entry against arXiv / ACL Anthology / OpenReview / Crossref / DBLP.
 
 Why: fabricated or garbled references (invented co-authors, placeholder
 "Chen and others", wrong venue, a key pointing at a different paper) are a
@@ -18,12 +18,20 @@ Usage
     python3 verify_bib.py refs.bib --only key1,key2      # re-check a few entries
     python3 verify_bib.py --selftest
 
-Resolution order per entry
---------------------------
-1. ePrint id (from `eprint=`, `url=`, `howpublished=`, `note=`, `journal=` text
-   such as "Cryptology ePrint Archive, Paper 2018/421")  ->  ePrint OAI-PMH record.
-2. `doi=`  ->  Crossref /works/<doi>, falling back to DataCite (Zenodo, LIPIcs, arXiv DOIs).
-3. otherwise title search: DBLP (if reachable) then Crossref bibliographic query.
+Resolution order per entry (every id found is tried; the first VERIFIED wins)
+-----------------------------------------------------------------------------
+1. arXiv id (`eprint=` + `archiveprefix=arXiv`, `url=arxiv.org/abs|pdf/...`, `journal=`/`note=`
+   "arXiv preprint arXiv:2406.13352", or DOI 10.48550/arXiv.<id>)  ->  arXiv API
+   export.arxiv.org/api/query?id_list=<id>  (title, authors, v1 and latest-version years).
+2. ACL Anthology id (`url=aclanthology.org/2024.acl-long.123`, or a 10.18653/v1/<id> DOI)
+   ->  https://aclanthology.org/<id>.bib  (parsed with this file's BibTeX parser).
+3. OpenReview id (`url=openreview.net/forum?id=...` or `pdf?id=...`)  ->  api2.openreview.net/notes?id=
+   (API v2), falling back to api.openreview.net (v1).
+4. Legacy IACR ePrint id (`eprint=YYYY/NNNN`, eprint.iacr.org URL, "ePrint Archive, Paper ...")  ->  OAI record
+   (compatibility for older projects; not a default Agent Attack source).
+5. `doi=`  ->  Crossref /works/<doi>, falling back to DataCite (Zenodo, LIPIcs, arXiv DOIs).
+6. no id: title search -- DBLP (if reachable), Crossref bibliographic query, then the arXiv API
+   title search (preprints are often missing from Crossref).
 
 Each entry gets a status:
   VERIFIED     title similarity >= 0.90 and >= 1 author surname overlap (and year +-1 if given)
@@ -44,6 +52,7 @@ import difflib
 import hashlib
 import html
 import json
+import xml.etree.ElementTree as ET
 import re
 import sys
 import time
@@ -52,7 +61,18 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-UA = "crypto-research-agents/0.1 bib-verify (low rate; mailto not set)"
+UA = "cra-bib-verify/0.2 (agent-attack research toolkit; low rate; mailto not set)"
+ARXIV_API = "http://export.arxiv.org/api/query"
+ACL_BIB = "https://aclanthology.org/{id}.bib"
+OPENREVIEW_V2 = "https://api2.openreview.net/notes?id={id}"
+OPENREVIEW_V1 = "https://api.openreview.net/notes?id={id}"
+ATOM = {"a": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}
+ARXIV_NEW = re.compile(r"(?<![\d.])(\d{4}\.\d{4,5})(?:v\d+)?(?![\d])")
+ARXIV_OLD = re.compile(r"\b([a-z\-]+(?:\.[A-Z]{2})?/\d{7})(?:v\d+)?\b")
+ACL_ID = re.compile(r"(?:aclanthology\.org/|10\.18653/v1/)([A-Z]\d{2}-\d{4}|\d{4}\.[a-z0-9\-]+\.\d+)", re.I)
+OPENREVIEW_ID = re.compile(r"openreview\.net/(?:forum|pdf)\?id=([A-Za-z0-9_\-]+)")
+# Legacy compatibility for older blackboards; Agent Attack defaults use arXiv,
+# ACL Anthology, OpenReview, Crossref/DataCite and DBLP instead.
 EPRINT_OAI = ("https://eprint.iacr.org/oai?verb=GetRecord&identifier=oai:eprint.iacr.org:{id}"
               "&metadataPrefix=oai_dc")
 CROSSREF = "https://api.crossref.org/works"
@@ -200,6 +220,7 @@ def http_get(url: str, timeout: float = 25.0) -> str:
 
 
 def fetch_eprint(eid: str) -> dict | None:
+    """Resolve a legacy IACR ePrint entry when an older project still cites one."""
     xml = http_get(EPRINT_OAI.format(id=eid))
     if "<dc:title>" not in xml:
         return None
@@ -208,6 +229,86 @@ def fetch_eprint(eid: str) -> dict | None:
     date = re.search(r"<dc:date>(\d{4})", xml)
     return {"title": title, "authors": authors, "year": int(eid.split("/")[0]),
             "last_year": int(date.group(1)) if date else None, "source": f"ePrint {eid}"}
+
+
+def parse_arxiv_atom(xml_text: str) -> list[dict]:
+    """Records from an arXiv API Atom feed (id_list lookup or title search)."""
+    out = []
+    for e in ET.fromstring(xml_text).findall("a:entry", ATOM):
+        title = re.sub(r"\s+", " ", e.findtext("a:title", "", ATOM) or "").strip()
+        raw = (e.findtext("a:id", "", ATOM) or "").strip()
+        m = re.search(r"arxiv\.org/abs/(.+?)(v\d+)?$", raw)
+        if not m or title.lower() == "error":            # API errors come back as a pseudo-entry
+            continue
+        pub, upd = e.findtext("a:published", "", ATOM)[:4], e.findtext("a:updated", "", ATOM)[:4]
+        out.append({"title": title, "id": m.group(1),
+                    "authors": [(a.findtext("a:name", "", ATOM) or "").strip() for a in e.findall("a:author", ATOM)],
+                    "year": int(pub) if pub.isdigit() else None,
+                    "last_year": int(upd) if upd.isdigit() else None,
+                    "venue": (e.findtext("arxiv:journal_ref", "", ATOM) or "").strip(),
+                    "source": f"arXiv {m.group(1)}"})
+    return out
+
+
+def fetch_arxiv(aid: str) -> dict | None:
+    recs = parse_arxiv_atom(http_get(f"{ARXIV_API}?{urllib.parse.urlencode({'id_list': aid, 'max_results': 1})}"))
+    return recs[0] if recs else None
+
+
+def search_arxiv_title(title: str) -> list[dict]:
+    words = [w for w in re.findall(r"[A-Za-z0-9]+", delatex(title)) if len(w) > 2][:12]
+    if not words:
+        return []
+    q = " AND ".join(f"ti:{w}" for w in words)
+    return parse_arxiv_atom(http_get(f"{ARXIV_API}?{urllib.parse.urlencode({'search_query': q, 'max_results': 5})}"))
+
+
+def record_from_bib(text: str, source: str) -> dict | None:
+    es = parse_bib(text)
+    if not es:
+        return None
+    f = es[0]["fields"]
+    yr = f.get("year", "")[:4]
+    return {"title": delatex(f.get("title", "")),
+            "authors": [delatex(a).strip() for a in re.split(r"\s+and\s+", f.get("author", "")) if a.strip()],
+            "year": int(yr) if yr.isdigit() else None, "venue": delatex(f.get("booktitle", f.get("journal", ""))),
+            "source": source}
+
+
+def fetch_acl(acl_id: str) -> dict | None:
+    try:
+        return record_from_bib(http_get(ACL_BIB.format(id=acl_id)), f"ACL Anthology {acl_id}")
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return None
+        raise
+
+
+def parse_openreview_note(raw: str, oid: str) -> dict | None:
+    notes = json.loads(raw).get("notes") or []
+    if not notes:
+        return None
+    n = notes[0]
+    c = n.get("content") or {}
+    val = lambda k: (c.get(k) or {}).get("value") if isinstance(c.get(k), dict) else c.get(k)  # v2 vs v1 shape
+    ms = n.get("pdate") or n.get("odate") or n.get("cdate") or n.get("tcdate") or 0
+    year = time.gmtime(ms / 1000).tm_year if ms else None
+    au = val("authors") or []
+    return {"title": (val("title") or "").strip(), "authors": au if isinstance(au, list) else [str(au)],
+            "year": year, "venue": val("venue") or "", "source": f"OpenReview {oid}"}
+
+
+def fetch_openreview(oid: str) -> dict | None:
+    for url in (OPENREVIEW_V2, OPENREVIEW_V1):
+        try:
+            rec = parse_openreview_note(http_get(url.format(id=oid)), oid)
+        except urllib.error.HTTPError as e:
+            if e.code in (400, 403, 404):
+                continue
+            raise
+        if rec and rec["title"]:
+            return rec
+    return None
 
 
 def fetch_crossref_doi(doi: str) -> dict | None:
@@ -279,7 +380,45 @@ def search_dblp(title: str) -> list[dict]:
 
 # ---------------------------------------------------------------- checking ---
 
+def find_arxiv_id(f: dict) -> str | None:
+    is_arxiv = "arxiv" in f.get("archiveprefix", "").lower() or "arxiv" in f.get("eprinttype", "").lower()
+    if f.get("eprint") and is_arxiv:
+        m = ARXIV_NEW.search(f["eprint"]) or ARXIV_OLD.search(f["eprint"])
+        if m:
+            return m.group(1)
+    doi = f.get("doi", "")
+    m = re.search(r"10\.48550/arxiv\.(\S+)", doi, re.I)
+    if m:
+        return m.group(1)
+    for k in ("url", "journal", "note", "howpublished", "booktitle", "publisher", "eprint"):
+        v = f.get(k, "")
+        if "arxiv" not in v.lower():
+            continue
+        m = ARXIV_NEW.search(v) or ARXIV_OLD.search(v)
+        if m:
+            return m.group(1)
+    return None
+
+
+def find_acl_id(f: dict) -> str | None:
+    for k in ("url", "doi", "note", "howpublished"):
+        m = ACL_ID.search(f.get(k, ""))
+        if m:
+            return m.group(1)
+    return None
+
+
+def find_openreview_id(f: dict) -> str | None:
+    for k in ("url", "note", "howpublished", "pdf"):
+        m = OPENREVIEW_ID.search(f.get(k, ""))
+        if m:
+            return m.group(1)
+    return None
+
+
 def find_eprint_id(f: dict) -> str | None:
+    if find_arxiv_id(f) and not re.search(r"iacr|eprint\.iacr", " ".join(f.values()), re.I):
+        return None                      # an arXiv "eprint = {2406.13352}" field is not an IACR id
     for k in ("eprint", "url", "howpublished", "note", "journal", "booktitle", "publisher"):
         v = f.get(k, "")
         m = EPRINT_ID.search(v) if k != "eprint" else re.search(r"((?:19|20)\d{2})/(\d{1,5})", v)
@@ -347,14 +486,29 @@ def check_entry(e: dict, offline: bool, state: dict) -> dict:
         res["detail"] = "offline mode"
         return res
     try:
-        eid = find_eprint_id(f)
-        if eid:
-            res["status"], res["score"], res["detail"] = judge(e, fetch_eprint(eid), f"id ePrint {eid}")
-            if res["status"] == "VERIFIED" or not f.get("doi"):
-                return res
-        if f.get("doi"):
+        ids = []
+        if (aid := find_arxiv_id(f)):
+            ids.append((f"id arXiv {aid}", lambda aid=aid: fetch_arxiv(aid)))
+        if (acl := find_acl_id(f)):
+            ids.append((f"id ACL {acl}", lambda acl=acl: fetch_acl(acl)))
+        if (oid := find_openreview_id(f)):
+            ids.append((f"id OpenReview {oid}", lambda oid=oid: fetch_openreview(oid)))
+        if (eid := find_eprint_id(f)):
+            ids.append((f"id ePrint {eid}", lambda eid=eid: fetch_eprint(eid)))
+        if f.get("doi") and not re.search(r"10\.48550/arxiv", f["doi"], re.I):
             doi = re.sub(r"^https?://(dx\.)?doi\.org/", "", f["doi"].strip())
-            res["status"], res["score"], res["detail"] = judge(e, fetch_crossref_doi(doi), f"id doi {doi}")
+            ids.append((f"id doi {doi}", lambda doi=doi: fetch_crossref_doi(doi)))
+        if ids:
+            best = None
+            for how, fetch in ids:
+                r = judge(e, fetch(), how)
+                if r[0] == "VERIFIED":
+                    best = r
+                    break
+                if best is None or r[1] > best[1]:
+                    best = r
+                time.sleep(state.get("delay", 1.0) / 2)
+            res["status"], res["score"], res["detail"] = best
             return res
         title = delatex(f.get("title", ""))
         if not title:
@@ -370,9 +524,15 @@ def check_entry(e: dict, offline: bool, state: dict) -> dict:
         first = (surnames_from_bib(f.get("author", "")) or [""])[0]
         cands += search_crossref(title, first)
         used.append("Crossref")
+        if not cands or max(title_sim(title, r["title"]) for r in cands) < 0.90:
+            try:
+                cands += search_arxiv_title(title)
+                used.append("arXiv")
+            except (urllib.error.URLError, OSError, ValueError, ET.ParseError):
+                pass
         best = max(cands, key=lambda r: title_sim(title, r["title"]), default=None)
         res["status"], res["score"], res["detail"] = judge(e, best, "search " + "+".join(used))
-    except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError, ET.ParseError) as exc:
         res["status"], res["detail"] = "UNCHECKED", f"service error: {exc}"
     finally:
         time.sleep(state.get("delay", 1.0))
@@ -415,43 +575,98 @@ def render(results: list[dict], dups: dict, bib_sha: str | None = None) -> str:
 # ---------------------------------------------------------------- selftest ---
 
 SELFTEST_BIB = r"""
-@misc{cggi-tfhe,
-  author = {Ilaria Chillotti and Nicolas Gama and Mariya Georgieva and Malika Izabach{\`e}ne},
-  title = {{TFHE}: Fast Fully Homomorphic Encryption over the Torus},
-  howpublished = {Cryptology ePrint Archive, Paper 2018/421},
-  year = 2018,
+@misc{agentdojo,
+  author = {Edoardo Debenedetti and Jie Zhang and Mislav Balunovi{\'c} and Luca Beurer-Kellner and Marc Fischer and Florian Tram{\`e}r},
+  title = {{AgentDojo}: A Dynamic Environment to Evaluate Prompt Injection Attacks and Defenses for {LLM} Agents},
+  eprint = {2406.13352}, archivePrefix = {arXiv},
+  year = 2024,
 }
 % UNVERIFIED
 @article{fake,
   author = "Chen and others",
-  title = {A Paper That Does Not Exist About Quantum Fuzzy Toys},
+  title = {A Paper That Does Not Exist About Quantum Fuzzy Toy Agents},
   journal = {IEEE TIFS}, year = {2024}
 }
+@inproceedings{toyacl, author = {Alice Example}, title = {Toy}, booktitle = {ACL},
+  url = {https://aclanthology.org/2099.acl-long.42/}, doi = {10.18653/v1/2099.acl-long.42}, year = {2099}}
+@inproceedings{toyor, author = {Alice Example}, title = {Toy}, booktitle = {ICLR},
+  url = {https://openreview.net/forum?id=AbC_d-1}, year = {2099}}
+% Legacy compatibility fixture: ePrint is not a default Agent Attack source.
+@misc{toyiacr, author = {Alice Example}, title = {Toy}, howpublished = {Cryptology ePrint Archive, Paper 2018/421}, year = {2018}}
+@article{toyarxivjournal, author = {Alice Example}, title = {Toy}, journal = {arXiv preprint arXiv:2099.01234}, year = {2099}}
+@misc{toyarxivdoi, author = {Alice Example}, title = {Toy}, doi = {10.48550/arXiv.2099.54321}, year = {2099}}
 """
+
+SAMPLE_ARXIV = """<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:arxiv="http://arxiv.org/schemas/atom">
+<entry><id>http://arxiv.org/abs/2099.01234v3</id><updated>2100-02-01T00:00:00Z</updated>
+<published>2099-01-15T00:00:00Z</published><title>Toy Agents
+ Believe Toy Rumours</title><author><name>Alice Example</name></author><author><name>Bob Example</name></author>
+<arxiv:journal_ref>Toy Conf 2099</arxiv:journal_ref></entry></feed>"""
+SAMPLE_ARXIV_ERR = """<feed xmlns="http://www.w3.org/2005/Atom"><entry><id>http://arxiv.org/api/errors#x</id>
+<title>Error</title></entry></feed>"""
+SAMPLE_ACL_BIB = """@inproceedings{example-2099-toy,
+    title = "Toy Agents Believe Toy Rumours",
+    author = "Example, Alice  and
+      Example, Bob",
+    booktitle = "Proceedings of the 137th Annual Meeting of the Toy Association",
+    year = "2099",
+    url = "https://aclanthology.org/2099.acl-long.42/",
+}"""
+SAMPLE_OR_V2 = json.dumps({"notes": [{"id": "AbC_d-1", "pdate": 4072550400000, "content": {
+    "title": {"value": "Toy Agents Believe Toy Rumours"}, "authors": {"value": ["Alice Example", "Bob Example"]},
+    "venue": {"value": "TOYCONF 2099 Poster"}}}]})
+SAMPLE_OR_V1 = json.dumps({"notes": [{"id": "x", "cdate": 4072550400000, "content": {
+    "title": "Toy Agents Believe Toy Rumours", "authors": ["Alice Example"]}}]})
 
 
 def selftest(online: bool) -> int:
-    es = parse_bib(SELFTEST_BIB)
-    assert [e["key"] for e in es] == ["cggi-tfhe", "fake"], es
-    assert es[0]["fields"]["year"] == "2018" and not es[0]["unverified_marker"]
-    assert es[1]["unverified_marker"]
-    assert find_eprint_id(es[0]["fields"]) == "2018/421"
-    assert surnames_from_bib(es[0]["fields"]["author"])[-1] == "izabachene"
-    assert "placeholder author list ('X and others' only)" in lint(es[1])
-    assert title_sim("{TFHE}: Fast Fully", "TFHE: fast fully") == 1.0
+    es = {e["key"]: e for e in parse_bib(SELFTEST_BIB)}
+    assert list(es)[:2] == ["agentdojo", "fake"], list(es)
+    ad = es["agentdojo"]
+    assert ad["fields"]["year"] == "2024" and not ad["unverified_marker"] and es["fake"]["unverified_marker"]
+    # id extraction for every resolver
+    assert find_arxiv_id(ad["fields"]) == "2406.13352" and find_eprint_id(ad["fields"]) is None
+    assert find_arxiv_id(es["toyarxivjournal"]["fields"]) == "2099.01234"
+    assert find_arxiv_id(es["toyarxivdoi"]["fields"]) == "2099.54321"
+    assert find_acl_id(es["toyacl"]["fields"]) == "2099.acl-long.42" and find_arxiv_id(es["toyacl"]["fields"]) is None
+    assert find_acl_id({"url": "https://aclanthology.org/P19-1001.pdf"}) == "P19-1001"
+    assert find_openreview_id(es["toyor"]["fields"]) == "AbC_d-1"
+    assert find_eprint_id(es["toyiacr"]["fields"]) == "2018/421" and find_arxiv_id(es["toyiacr"]["fields"]) is None
+    assert surnames_from_bib(ad["fields"]["author"])[-1] == "tramer"
+    assert "placeholder author list ('X and others' only)" in lint(es["fake"])
+    assert title_sim("{AgentDojo}: A Dynamic", "AgentDojo: a dynamic") == 1.0
+    # parsers on embedded sample responses
+    rec = parse_arxiv_atom(SAMPLE_ARXIV)[0]
+    assert rec["title"] == "Toy Agents Believe Toy Rumours" and rec["year"] == 2099 and rec["last_year"] == 2100
+    assert rec["authors"] == ["Alice Example", "Bob Example"] and rec["id"] == "2099.01234", rec
+    assert parse_arxiv_atom(SAMPLE_ARXIV_ERR) == []
+    acl = record_from_bib(SAMPLE_ACL_BIB, "ACL Anthology 2099.acl-long.42")
+    assert acl["title"] == "Toy Agents Believe Toy Rumours" and acl["year"] == 2099
+    assert {surname_of(a) for a in acl["authors"]} == {"example"}, acl
+    v2 = parse_openreview_note(SAMPLE_OR_V2, "AbC_d-1")
+    v1 = parse_openreview_note(SAMPLE_OR_V1, "x")
+    assert v2["year"] == v1["year"] == 2099 and v2["authors"][1] == "Bob Example" and v1["title"] == v2["title"]
+    # judging
+    toy = {"type": "misc", "key": "t", "unverified_marker": False,
+           "fields": {"title": "Toy agents believe toy rumours", "author": "Alice Example and Bob Example", "year": "2100"}}
+    assert judge(toy, rec, "id arXiv 2099.01234")[0] == "VERIFIED"           # year matches the latest version
+    wrong = dict(toy, fields=dict(toy["fields"], author="Carol Other"))
+    assert judge(wrong, rec, "id arXiv 2099.01234")[0] == "MISMATCH"
+    assert judge(toy, None, "search")[0] == "NOT_FOUND"
     rep = render([{"status": "VERIFIED", "key": "k", "score": 1.0, "lint": [], "detail": "d"}], {}, bib_sha256("x"))
     assert f"bib-sha256: {bib_sha256('x')}" in rep and "| VERIFIED | `k` |" in rep
     print("selftest (offline part): OK")
     if online:
-        st = {"delay": 0.5}
-        r0, r1 = check_entry(es[0], False, st), check_entry(es[1], False, st)
+        st = {"delay": 3.0}
+        r0, r1 = check_entry(ad, False, st), check_entry(es["fake"], False, st)
         print(f"  online: {r0['key']} -> {r0['status']} ({r0['detail'][:90]})")
         print(f"  online: {r1['key']} -> {r1['status']} ({r1['detail'][:90]})")
         if r0["status"] == "UNCHECKED":
-            print("  network unavailable: online part skipped")
+            print("  network unavailable or rate-limited: online part skipped")
         else:
             assert r0["status"] == "VERIFIED", r0
-            assert r1["status"] in ("NOT_FOUND", "WEAK"), r1
+            assert r1["status"] in ("NOT_FOUND", "WEAK", "UNCHECKED"), r1
             print("selftest (online part): OK")
     return 0
 

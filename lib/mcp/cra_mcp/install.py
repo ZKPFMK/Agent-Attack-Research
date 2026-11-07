@@ -19,8 +19,8 @@ READONLY_CORE = ["cra_resume", "role_card", "skill_guide", "blackboard_read", "c
 
 BEGIN, END = "<!-- cra:begin -->", "<!-- cra:end -->"
 GUIDE = f"""{BEGIN}
-## crypto-research-agents (cra MCP server)
-This project is run with the `cra` MCP server (falsify-first pipeline P0-P8 for cryptography papers).
+## agent-attack-research-agents (cra MCP server)
+This project is run with the `cra` MCP server (falsify-first pipeline P0-P8 for research on attacks against LLM agents and multi-agent systems).
 1. At the start of every session, and after any context reset, call the **`cra_resume`** tool and follow
    its `next_tasks` (each names the agent role, the inputs, the output and the tool to call).
 2. Adopt a role with `role_card(<agent>)`; read procedures with `skill_guide(<skill>)`.
@@ -29,7 +29,8 @@ This project is run with the `cra` MCP server (falsify-first pipeline P0-P8 for 
 4. Invariants: only survived/weakened claims (cite as `\\claimref{{C<n>}}`) and numbers with an EVIDENCE row
    (`3.86x\\evid{{E3}}`) enter paper/. Never invent a number: run the experiment, then `evidence_add`.
    Run `invariants_check` after editing paper/.
-5. Nothing leaves the machine (submission, e-mail, eprint, public repo) without explicit human approval.
+5. Nothing leaves the machine (submission, e-mail, arXiv, public repo, vendor disclosure) without explicit human approval;
+   attacks run only against owned or sandboxed systems, never live third-party services.
 {END}
 """
 

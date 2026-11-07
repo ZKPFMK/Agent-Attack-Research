@@ -84,7 +84,7 @@ GOLDEN = (math.sqrt(5) - 1) / 2
 
 
 def use(venue: str = "lncs") -> None:
-    """Activate crypto.mplstyle + the venue sheet."""
+    """Activate the Agent Attack house style plus the venue sheet."""
     import matplotlib.pyplot as plt
     import logging
     for name in ("matplotlib.font_manager", "fontTools", "matplotlib.backends.backend_pdf"):
@@ -127,7 +127,7 @@ def save(fig, stem: str, outdir: str | Path = ".", png_dpi: int = 300) -> list[P
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
     paths = [outdir / f"{stem}.pdf", outdir / f"{stem}.png"]
-    fig.savefig(paths[0], metadata={"Creator": "crypto-research-agents", "CreationDate": None})
+    fig.savefig(paths[0], metadata={"Creator": "agent-attack-research-agents", "CreationDate": None})
     fig.savefig(paths[1], dpi=png_dpi)
     return paths
 

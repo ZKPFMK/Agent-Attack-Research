@@ -1,67 +1,62 @@
-# 05 Technique Overview
+# 05 Attack overview (key insights)
 
-Usually the longest part of the introduction (≈ 3–4 LNCS pages). Many reviewers read
-only the introduction, the overview and the experiments carefully, so this part must
-let a reader restate the core idea and believe the main theorem **without reading
-the body**. Full procedure: [technique-overview](../../technique-overview/SKILL.md).
+Either a subsection at the end of the introduction ("Our approach in a nutshell") or
+the first subsection of the attack-design section, ≈ 0.5–1 page. Many reviewers read
+only the introduction, this overview, the threat model and the main results table, so
+it must let a reader restate *why the attack works* **without reading §4 in full**.
+Full procedure: [technique-overview](../../technique-overview/SKILL.md).
 
 ## Structure
 
 ```
-[recall notation]   One paragraph: "We begin by recalling the routes ..., in the notation
-                    of Section 2": define only the symbols the overview needs.
-[prior routes]      One bold-headed paragraph per prior route, described per paper and at
-                    a mathematical high level (formula, identity, cost). Each ends with a
-                    factual sentence naming what that route leaves open.
-[reduction]         "Taken together, the routes address (1) through distinct <structures>
-                    of the same object. Whether they can be combined therefore reduces to
-                    two questions: (i) ... (ii) ..."
-[signpost]          "Insight 1 resolves (i) and Insight 2 resolves (ii), yielding the map
-                    in Figure 1."
-[figure]            One diagram placing prior works as points/corners, ours as the new
-                    region; caption states the placement in one sentence.
-[Insight 1]         Bold heading = a complete declarative sentence ("X bounds Y.").
-                    Observation → reformulation → key formula → conclusion → why the
-                    boundary case is tight.
-[Insight 2]         Same format.
-[composition]       The combined identity/algorithm, literally equal to the body version.
-[scope extender]    Optional: one paragraph (or a short body section) showing the technique
-                    applies to neighbouring schemes, quantified by formula only.
+[recall]           One paragraph: the victim pipeline in the notation of §2 (agents, message
+                   flow, tools, memory) and the attacker's single access point (from §3).
+[prior routes]     One bold-headed paragraph per closest prior attack: what it injects,
+                   where, what it assumes; ends with the factual reason it does not solve
+                   our setting (blocked by a defense, needs stronger access, single hop).
+[challenges]       "Achieving <effect> under <threat model> therefore requires answering:
+                   (C1) ... (C2) ... (C3) ..." (same numbering as the introduction).
+[figure]           Attack-pipeline overview: benign flow vs attacked flow, attacker element
+                   tinted, each insight labelled where it acts. Caption = take-away.
+[Insight 1]        Bold heading = a complete declarative sentence ("Agents defer to peers
+                   that cite evidence they cannot check."). Observation → evidence from a
+                   pilot (EVIDENCE row) → how the attack uses it.
+[Insight 2..k]     Same format, one per challenge.
+[putting together] The attack as one short algorithm sketch, literally consistent with §4.
 ```
 
 ## Rules
 
-- Include key formulas, one key identity, one figure and ideally one tiny worked
-  numerical example.
-- Insight headings are sentences, not noun phrases. Bad: "Window width." Good:
-  "Window width, not table count, bounds the packing factor."
-- Formulas in the overview are copied from the body theorem statements. A mismatch
-  between overview and body is a classic mock-review catch.
-- Introduce assumptions with "Suppose ..." before deriving, to avoid circularity.
-- Asymptotic/density-type results: say "asymptotic density ... certified per instance
-  by Lemma X", not "we prove the heuristic".
-- Describe prior works by paper, at the level of mathematics, not by a tutorial with
-  explanatory mini-headings ("Why the filter is needed", "Where the cost goes").
-- The overview recalls prior routes; it does not repeat the related-work comparison.
+- Insights must be **measured observations or mechanistic arguments**, not slogans:
+  each insight cites a pilot measurement (`\evid{E<n>}`) or a controlled ablation.
+- Insight headings are sentences, not noun phrases. Bad: "Evidence anchoring." Good:
+  "Agents accept a claim when it is attached to a true but irrelevant citation."
+- Describe prior attacks by mechanism and access, at the level of the pipeline; do not
+  repeat the related-work comparison.
+- Do not anthropomorphise ("the agent wants"); describe inputs, outputs and measured
+  rates.
+- No payload text; describe the payload's *structure* (e.g. "a true citation, a
+  hedged rewrite, a request to forward").
 - Late in the process, fix only obvious errors in the overview; do not restyle it.
 
-## Toy skeleton (T1, PBS with LUT packing; illustrative)
+## Toy skeleton (T1, RelayRumor; illustrative)
 
-> **Recall.** A PBS rotates a test polynomial v(X) by the phase of an LWE sample; one
-> PBS evaluates one table f: Z_t → Z_t. Prior work evaluates k tables with k PBS, or
-> with one PBS of doubled ring degree [..], leaving open whether k small tables can
-> share one rotation at the original degree.
-> **Two questions.** (i) For which k can k tables be interleaved in one test
-> polynomial without overlapping windows? (ii) Can the k outputs be separated with
-> key switches only?
-> **Insight 1: Window width, not table count, bounds the packing factor.** ... giving
-> k ≤ N/(2 t w).
-> **Insight 2: Output separation is linear and therefore free of bootstrapping.** ...
+> **Recall.** Agents a_1..a_5 form a chain; a_i receives m_{i-1}, consults its own
+> evidence, and forwards m_i. The attacker controls a_2's output only (§3).
+> **Prior routes.** Self-replicating prompts [..] require every hop to execute an
+> instruction and are flagged by instruction detectors; orchestrator compromise [..]
+> assumes control of the planner.
+> **Challenges.** (C1) a_3..a_5 re-check claims; (C2) the rewrite must survive two
+> paraphrasing hops.
+> **Insight 1: Downstream agents rarely re-check a claim that cites a true source.**
+> In a pilot, adding a true but irrelevant citation reduced re-check rate from 62% to
+> 18% [ill.] (E3).
+> **Insight 2: Hedged claims survive paraphrase better than assertive ones.** ...
 
 ## Checklist
 
-- [ ] Every prior route recalled per paper with its formula and what it leaves open.
-- [ ] Explicit reduction to numbered questions; each insight answers one.
-- [ ] Insight headings are declarative sentences.
-- [ ] Figure caption states placement of prior work vs ours in one sentence.
-- [ ] Formulas string-identical to body statements.
+- [ ] Each closest prior attack recalled with its access assumption and its gap.
+- [ ] Challenges numbered as in §1; each insight answers one.
+- [ ] Insight headings are declarative sentences backed by a pilot or ablation row.
+- [ ] Figure caption states the take-away; attacker element is the only tinted part.
+- [ ] Algorithm sketch consistent with §4.

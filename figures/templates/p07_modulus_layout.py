@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""P07 -- ciphertext / modulus bit-layout diagram ("where do the bits live").
+"""A7 -- provenance and agent/message state layout.
 
-Pattern (very common in FHE bootstrapping papers): each row is one ciphertext
-state drawn as a horizontal bar of width log q; coloured segments show message
-bits, gap and noise; braces give the moduli (q, Delta, t); the operation that
-maps one state to the next is written on the arrow between rows.  Keep 2-4
-rows, a single accent for the message, grey for noise.  SYNTHETIC LAYOUT.
+Pattern: each row is a received, summarised or stored state; coloured segments
+show content, metadata and provenance, and arrows show transformation or memory
+write. Keep payload text abstract or redacted. SYNTHETIC LAYOUT.
 """
 import sys, pathlib
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -43,16 +41,16 @@ def make(venue="lncs", outdir=ROOT / "examples"):
     fig, ax = P.figure(venue, width=0.8 if venue == "lncs" else "column", aspect=0.8)
     msg, noise, gap = P.SEQ_BLUE[1], "#d3d2cc", "white"
     rows = [
-        (3.0, [(1.5, msg, "$m$"), (1.5, gap, ""), (3.0, noise, "$e$")], r"$\mathrm{ct}$", r"$q$"),
-        (1.6, [(1.5, gap, ""), (4.5, noise, "$e + qI$")], r"$\mathrm{ct}'$", r"$Q \gg q$"),
-        (0.2, [(1.5, msg, "$m$"), (3.3, gap, ""), (1.2, noise, "$e'$")], r"$\mathrm{ct}''$", r"$q$"),
+        (3.0, [(1.5, msg, "content"), (1.5, gap, ""), (3.0, noise, "metadata")], "received", "source"),
+        (1.6, [(1.5, gap, ""), (4.5, noise, "summary")], "summarised", "role"),
+        (0.2, [(1.5, msg, "content"), (3.3, gap, ""), (1.2, noise, "provenance")], "stored", "memory"),
     ]
     for y, segs, name, top in rows:
         x1 = row(ax, y, segs, name)
         brace(ax, 0, x1, y + 0.42, label=top)
     brace(ax, 0, 1.5, 2.93, up=False, label="$t$")
     brace(ax, 0, 1.5, 0.13, up=False, label="$t$")
-    for (ya, yb, op) in [(3.0, 1.6, "ModRaise"), (1.6, 0.2, "EvalMod (toy)")]:
+    for (ya, yb, op) in [(3.0, 1.6, "summarise"), (1.6, 0.2, "memory write")]:
         ax.annotate("", xy=(3.0, yb + 0.78), xytext=(3.0, ya - 0.08),
                     arrowprops=dict(arrowstyle="-|>", color=P.INK_2, lw=0.7, mutation_scale=7))
         ax.text(3.12, (ya - 0.08 + yb + 0.78) / 2, op, fontsize="small", va="center")

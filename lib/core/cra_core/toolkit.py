@@ -1,4 +1,4 @@
-"""Locate the crypto-research-agents toolkit checkout (templates, agents, skills)."""
+"""Locate the agent-attack-research-agents toolkit checkout (templates, agents, skills)."""
 from __future__ import annotations
 
 import os
@@ -17,7 +17,7 @@ def toolkit_root() -> str:
     for c in cands:
         if c and os.path.isfile(os.path.join(c, "SPEC.md")) and os.path.isdir(os.path.join(c, "templates", "blackboard")):
             return c
-    raise FileNotFoundError("cannot find the crypto-research-agents checkout; set CRA_HOME=<path to it>")
+    raise FileNotFoundError("cannot find the agent-attack-research-agents checkout; set CRA_HOME=<path to it>")
 
 
 def init_project(target: str) -> list[str]:
@@ -33,7 +33,7 @@ def init_project(target: str) -> list[str]:
         if not os.path.exists(dst):
             shutil.copy2(os.path.join(bb, f), dst)
             created.append(f)
-    for d in ("results", "paper", "baselines", "lean", "falsify", "notes", ".cra"):
+    for d in ("results", "paper", "baselines", "falsify", "notes", "pilots", ".cra"):
         os.makedirs(os.path.join(target, d), exist_ok=True)
     paper = os.path.join(target, "paper")
     if not os.listdir(paper):

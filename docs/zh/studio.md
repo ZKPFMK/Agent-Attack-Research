@@ -1,51 +1,43 @@
-# CRA Studio：桌面应用
+# CRA Studio：桌面工作台
 
 [English](../studio.md) · [各平台接入](integrations.md)
 
-CRA Studio 把整套工具打包成**一个可执行文件**：本地图形界面，加上 `cra` MCP 服务器、`cra` 命令行和 `cra-agent` 循环。它参照了开源 AI-for-science 工作台的形态：
-- 打开项目；
-- 接入任意模型接口；
-- 由 agent 通过工具干活，你在一旁看着并审批。
+CRA Studio 把 Agent Attack research toolkit 打包成一个本地可执行程序，包含图形界面、`cra-mcp` 服务器、`cra` CLI 和 `cra-agent` 循环。它用于查看黑板、调用角色和工具、运行门检并审批项目内写入。
 
-代码是原创实现，专门服务于"先证伪"的密码学研究流程。
+## 获取与运行
 
-## 获取
-- **直接下载**：在 GitHub Release 页面下载 `CRA-Studio-windows-x64.exe`、`CRA-Studio-macos-arm64` 或 `CRA-Studio-linux-x64`。每次打 `v*` 标签时，`release` 工作流会自动构建这三个文件。
-  - 文件没有代码签名。Windows 上 SmartScreen 拦截时，点"更多信息 → 仍要运行"。
-  - macOS 上先执行一次 `xattr -d com.apple.quarantine CRA-Studio-macos-arm64 && chmod +x CRA-Studio-macos-arm64`。
-- **自己构建**：`pip install -e lib/core -e lib/bench -e lib/mcp -e lib/studio pyinstaller && pyinstaller packaging/cra-studio.spec --noconfirm`，产物在 `dist/` 目录。
-- **从源码运行**：`pip install -e lib/studio …`，然后运行 `cra-studio`。
+- 从 release 下载对应平台的构建，或用 `pyinstaller` 从源码构建；
+- 从源码安装：
+
+```bash
+python3 -m pip install -e lib/core -e lib/agentattack -e lib/mcp -e lib/bench -e lib/studio
+cra-studio
+```
+
+程序只绑定 `http://127.0.0.1:8770`。打开项目后可以查看 phase、open claims、evidence 行、gate 结果、`STATE.md` 和下一项任务。
 
 ## 使用
-启动 `CRA-Studio`，浏览器会打开 `http://127.0.0.1:8770/#t=<令牌>`。
 
-1. **项目**：打开一个研究目录，或者新建一个（会生成黑板文件和论文骨架）。
-2. **设置 → 模型接口**：
-   - 选一个预设（OpenAI、DeepSeek、GLM、Kimi、通义、MiniMax、OpenRouter、Ollama、vLLM），**或者直接填任意 OpenAI 兼容的 Base URL**，再填 API key 和模型 id。点"测试连接"可以列出该接口提供的模型。
-   - key 只保存在本机的用户配置文件里（权限 600），保存后不会再显示，也不会写进项目或 git。配置文件位置：Windows 为 `%APPDATA%\cra\studio.json`，macOS 为 `~/Library/Application Support/cra/studio.json`，Linux 为 `~/.config/cra/studio.json`。
-   - 如果设置了环境变量 `OPENAI_BASE_URL`、`OPENAI_API_KEY`、`CRA_MODEL`，会用它们填补空着的字段。
-3. **概览**：显示阶段、各状态 claim 的数量、证据行数、阶段门结果和下一步任务；点"执行"会把第一项任务交给助手。
-4. **研究助手**：对话界面，模型只能通过 cra 工具操作项目。
-   - 每次工具调用和返回结果都会显示出来。
-   - 破坏性操作（`phase_advance`、`file_write`）会等你点**允许**或**拒绝**。
-   - 每个项目的对话可以接着上一次继续；勾选"新对话"则重新开始。
-   - 助手不能执行命令。需要跑实验时，它会告诉你命令，你在本地跑完后，再用日志登记证据。
-5. **账本**：查看 claims 表、evidence 表和各个黑板文件。
-6. **接入其他工具**：为 Claude Code、Codex、Cline、Cursor、VS Code 等 21 个平台生成 MCP 配置。可执行文件本身就是 MCP 服务器，所以生成的配置直接调用 `<CRA-Studio> mcp --project …`。
+1. 在 Project 中打开或初始化一个研究目录；
+2. 在 Settings 中配置允许的本地或兼容模型 endpoint。API key 只写入本机用户配置，保存后不能从 UI 读回；
+3. 在 Overview 查看 P0–P8 状态、风险和 `next_tasks`；
+4. 在 Research Assistant 中让模型通过 cra 工具读取和更新项目。每次 tool call 和返回都显示；`phase_advance`、账本写入等破坏性动作需要人工批准；
+5. 在 Ledger 查看 `CLAIMS.md`、`EVIDENCE.md`、`DECISIONS.md` 和审计结果；
+6. 在 Integrations 为 Claude Code、Codex、Cursor、Cline、VS Code 等宿主生成 MCP 配置。
 
-## 一个文件，多种用法
+实验由用户在本地或沙箱终端执行，结果写入 `trials.jsonl` 后再用 `aa rate` 和 `crbench evidence add` 登记。Studio 不替用户访问 live third-party agent，也没有投稿、发邮件或公开发布功能。
+
+## 命令模式
+
 ```text
-CRA-Studio                                   图形界面（默认）
-CRA-Studio mcp --project <目录> [--http]     cra MCP 服务器（stdio 或 Streamable HTTP）
-CRA-Studio install --host <平台> --project <目录>   为指定平台写入 MCP 配置
-CRA-Studio agent --model <id> --project <目录>      终端里的 agent（OpenAI 兼容接口）
-CRA-Studio cra <参数>                        黑板命令行（init、status、gate、claim、evidence、check、hook）
-CRA-Studio doctor --project <目录>           自检
+CRA-Studio                                      图形界面
+CRA-Studio mcp --project <dir> [--http]        cra-mcp（stdio / Streamable HTTP）
+CRA-Studio install --host <host> --project <dir> 生成宿主配置
+CRA-Studio agent --model <id> --project <dir>  OpenAI-compatible agent loop
+CRA-Studio cra <args>                           黑板 CLI
+CRA-Studio doctor --project <dir>              自检
 ```
 
 ## 安全
-- 图形界面只监听 127.0.0.1。
-- 每个 API 请求都必须带上本次启动生成的令牌（放在 URL 的 # 后面），且 Host 头必须是本机地址，所以浏览器里的其他网页无法操控它。
-- 对浏览器来说，API key 只能写入，读不回来。
-- 你发给助手的内容，以及助手读到的项目内容，都会发送到你配置的模型接口，请据此选择接口。
-- cra 没有任何投稿、发邮件或公开发布的功能。
+
+界面只监听本机；请求需要启动时生成的 token 和合法 Host；模型接口会看到用户发送的 prompt 以及 agent 读取的项目文件，因此应选择用户批准的本地、组织内或沙箱 endpoint。项目规则仍要求不把 secrets、credentials、personal data、私有研究内容和工作 payload 放进 git。

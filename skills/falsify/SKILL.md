@@ -1,112 +1,75 @@
 ---
 name: falsify
-description: Red-team protocol for trying to refute a research claim (theorem, speed-up, security level, novelty) before anyone else does. Use at the P6 falsification gate, before any number or theorem goes into the paper, and whenever a sub-agent reports a surprisingly good result. Produces a verdict of survived, weakened or refuted, with evidence, in CLAIMS.md.
+description: Red-team protocol for trying to refute an LLM-agent or multi-agent attack claim before a reviewer does. Use at P6, before a number enters the paper, after a surprising result, and when a threat model or judge is questioned.
 ---
-# falsify: try to break the claim before a reviewer does
+# falsify: break the attack claim before a reviewer does
 
 ## Principle
 
-The job is to **refute** the claim, not to confirm it. An agent handed a framework
-tends to collect supporting evidence and amplify a wrong premise. In
-practice, most refuted claims in multi-agent rounds turn out to be the
-*orchestrator's own* hypotheses. So:
-
-- The proposer first writes the claim as a **falsifiable statement**. It names exact
-  quantifiers and parameters, gives a *kill switch* (the observation that would refute
-  it), and describes the smallest experiment that could refute it.
-- The falsifier's prompt says: "Your primary task is to verify this, not to redo it.
-  If it is wrong, say exactly where; that is worth more than a confirmation."
-- Every attempt must **actually run** something: a computation, a script or a search.
-  Report real outputs. Never invent them.
-- If no counterexample is found, say "could not refute" and list what was tried. Do not
-  hide behind vague wording.
+The job is to **refute** the claim, not confirm it. The proposer writes a falsifiable statement with its exact
+victim, access point, quantifiers, budget, metric and kill switch. The falsifier runs real computations, re-labels,
+controls or searches and reports actual outputs. "Could not refute" is a valid result only when the attempted checks
+are listed.
 
 ## Input
 
-A row in `CLAIMS.md` (`ID | claim | proposer | status | falsifier evidence | EVIDENCE refs`)
-with status `open`, plus the sources it cites (THEORY.md section, EVIDENCE rows, logs,
-code).
+A `CLAIMS.md` row in the form
+`ID | claim | proposer | status | falsifier evidence | EVIDENCE refs`, normally with `status: open`, plus
+`THREAT-MODEL.md`, `ETHICS.md`, raw `trials.jsonl`, judge labels, baseline manifest, KB position and cited sources.
 
-## Attack order (cheap and decisive first)
+## Attack order
 
-Work through all six. Stop early only on a clean refutation.
+1. **Definitions and scope.** Check that attacker goal, knowledge, capabilities, access point, victim, success
+   rubric, stealth and out-of-scope are defined and identical in the paper, protocol and code. Reject circular
+   access: a party that already controls the victim state does not need the proposed attack.
+2. **Controls and confounds.** Add no-attack, naive injection and plain jailbreak at the same budget. Check whether
+   the base model already produces the measured behaviour or whether the victim merely quotes a payload while
+   refusing it. For MAS, check the stated topology, message route, memory writes and source roles.
+3. **Judge artefact.** Blindly re-label a stratified transcript sample or use a second rubric/judge. Run `aa kappa`
+   and report precision, recall, F1 and the judge fingerprint. Refusal-with-leak, partial adoption and later
+   retraction must have pre-registered labels.
+4. **Sensitivity.** Re-run the primary cell across model families/snapshots, temperature, seeds, paraphrases,
+   framework versions, topology, defense settings and query/token budget. A one-cell result is weakened to that
+   cell unless the claim says so.
+5. **Raw recomputation.** Recompute every rate from JSONL with `aa rate`; check k/n, Wilson 95% CI, paired tests,
+   excluded failures, timeout/refusal rules, multiple-comparison correction, utility, false-trigger, detection,
+   latency, tokens, queries and cost. Do not trust a summary table.
+6. **Defense and adaptive attacker.** Run the strongest applicable static defense and an attacker that knows the
+   defense, or an adaptive defender for an evasion claim. Report utility under defense; a broken task is not a
+   successful stealth attack.
+7. **Realism and containment.** Confirm the access point is reachable without already granting the outcome and that
+   the run used only an owned, local or sandbox target. Any live third-party target, real user, credential, private
+   data, production page or public registry is a containment veto.
+8. **Pre-emption.** Search the user's KB with `aa kb-search`, read `KB-POSITION.md`, and check recent public papers
+   with `paper-search`. A known mechanism under a different name weakens or refutes a novelty claim.
 
-1. **Definitions.** Are all objects well-defined for every parameter allowed? Does a
-   symbol mean the same thing in the abstract, the theorem and the experiment? Typical
-   failures: two different definitions of the same quantity (for example, a padded
-   length and a polynomial degree written with one symbol); an "element of order r"
-   that is not guaranteed to exist; a cost measure that counts different operations in
-   the two arms.
-2. **Quantifiers.** Is it "for all" or "there exists"? For all parameters, or only for
-   those satisfying an unstated side condition? Does the proof use the hypothesis in
-   the direction stated? Is the claimed injectivity or existence only checked on the
-   examples? Is a necessary condition presented as sufficient? Write the negation and
-   try to satisfy it.
-3. **Edge parameters.** Try the smallest values (p = 2, 3; n = 1; r = 1, 2), boundary
-   values (p ≡ 3 mod 4 when the claim needs p ≡ 1; B at the admissibility threshold),
-   degenerate cases (a trivial group, a zero polynomial, an empty set) and the
-   *largest* parameter used in the experiments. Do a small exhaustive search wherever
-   feasible, for example with `skills/sage-check`. One finite counterexample settles
-   the question.
-4. **Numeric recomputation.** Recompute every number in the claim from the raw logs.
-   Do not use the paper's table or a previous summary. Check:
-   - that the rows of a table come from the *same* configuration. Mixing the
-     fastest-time column from one setting with the fewest-operations column from
-     another is a classic failure;
-   - that "best vs best" is really best vs best, and the ratio uses the stated protocol;
-   - arithmetic inside tables (sums, degrees, ratios, rounding: `round` vs `ceil` can
-     differ by exactly 1);
-   - that the same number is identical everywhere it appears: abstract, introduction,
-     evaluation, appendix;
-   - that failure modes are attributed correctly. An uncaught exception with a core
-     dump is not a "graceful noise-budget exhaustion" until the error message says so.
-5. **Hidden baseline unfairness.** Different parameters (the library's real preset vs
-   the one printed in the paper), threads, compiler flags, machine, day or load; a
-   stale build; a weaker baseline than the strongest available; a cited number never
-   reproduced locally; offline work moved out of the timed region; a
-   single-configuration win reported as general. Cross-check with
-   `skills/baseline-pin` and `skills/bench-protocol`.
-6. **Literature pre-emption.** Search for the core identity or algorithm under other
-   names. Check: the target paper's own citations; ePrint from the last 24 months;
-   follow-ups citing the baseline; the textbook treatment (ask `math-librarian`).
-   A reformulation of known work ("X is exactly Y viewed as a module over Z") downgrades
-   novelty even when everything is correct. Record the ePrint or DOI. Never cite from
-   memory; if a reference cannot be verified, write "needs verification".
+Run at least one check at every step unless a clean refutation ends the campaign. Preserve counterexamples and
+negative results under `falsify/<claim-id>/`.
 
-## Verdict taxonomy (write into the CLAIMS.md status column)
+## Verdict taxonomy
 
 | verdict | meaning | required evidence |
 |---|---|---|
-| `survived` | every attack in the order above was attempted and none succeeded | list of attempts, with commands and outputs or the searches run |
-| `weakened` | true only under an extra hypothesis, over a smaller parameter range, with a smaller constant, or with less novelty than claimed | the precise restated claim, plus the counterexample or recomputation that forced it |
-| `refuted` | a counterexample, a recomputation contradicting the number, or prior art containing the result | a minimal reproducible counterexample (script plus output) or the exact prior-art citation |
+| `survived` | every applicable attack above was attempted and none succeeded | commands, outputs, raw paths and searches |
+| `weakened` | true only for a narrower model, budget, cell, metric or novelty statement | replacement claim plus the forcing evidence |
+| `refuted` | counterexample, recomputation contradiction, judge artefact, containment violation or prior art | minimal reproducible evidence or verified citation |
 
-A `weakened` verdict must include the **replacement claim text**. The proposer either
-adopts it or appeals to `pi-orchestrator`. Keep `refuted` rows in the table with
-their reason, so no one repeats the dead end.
+Write the verdict in `CLAIMS.md`, append material changes to `STATE.md` errata, and notify `pi-orchestrator`. Keep
+refuted rows so future projects do not repeat them. Only survived or weakened rows can be used by `writer`.
 
-## Output format
+## Output example
 
 ```markdown
-| C7 | For every prime p ≡ 1 (mod 4) and every B ≤ B_max(p), map φ_B is injective | theorist | weakened | sage-check exhaustive p<200: first failure p=13, B=2 (script: checks/c7.py, output: results/c7.txt). Holds when 2(|A|+1)B < p (sufficient, not necessary). Replacement: "... if 2(|A|+1)B < p" | E14 |
+| C7 | On local MAS T, attack A raises adoption over naive injection at equal query budget | idea-miner | weakened | adaptive defense removes the gain on model snapshot S2; replacement: "...without adaptive defense on S1" | E14 |
 ```
 
-Also append to the shared errata section (`STATE.md` → "Errata and rolling updates")
-when a verdict changes something other agents rely on. State which source now wins.
+## Parallel rounds
 
-## Veto
+Give each sub-agent a disjoint claim group, required first-line verdict (`REFUTED`, `SURVIVED` or `UNVERIFIABLE`),
+a kill switch and a do-not-do list. A final falsifier reads all outputs, recomputes disputed cells and adjudicates
+conflicts. Never let the proposer be the only falsifier.
 
-`falsifier` holds a veto. No claim with status `open` or `refuted` may appear in
-`paper/`. A `weakened` claim may appear only in its restated form. `writer` checks
-CLAIMS.md before each section, and `submission-rebuttal` re-checks before submission.
+## Related skills
 
-## Review-brief pattern (for parallel falsifier sub-agents)
-
-When fanning out, give each sub-agent:
-
-- one group of claims (arithmetic and units; performance numbers; artifacts and links;
-  argument completeness; novelty);
-- the verdict labels required on the first line (`REFUTED` / `CONFIRMED` / `UNVERIFIABLE`);
-- a "do NOT do" list naming what the other sub-agents cover;
-- an instruction to read the other sub-agents' outputs and **explicitly adjudicate any
-  conflicts**.
+`judge-validation`, `adaptive-eval`, `eval-protocol`, `baseline-pin`, `threat-model`, `attack-kb`, `paper-search`,
+`log-to-evidence`.

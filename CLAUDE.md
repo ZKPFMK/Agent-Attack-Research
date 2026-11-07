@@ -1,17 +1,20 @@
-# crypto-research-agents — instructions for Claude Code
+# agent-attack-research-agents — instructions for Claude Code
 
-This repo is a **toolkit**, not a research project. Research happens in a separate
-project directory initialised with `/cra-init <dir>` (see `docs/QUICKSTART.md`).
+This repository is a toolkit, not a research result. A research project is initialized separately with
+`/cra-init <dir>` (see `docs/QUICKSTART.md`). It is designed for attacks on LLM agents and multi-agent systems,
+using the user's 01/02/03 attack taxonomy and 04–09 defense/framework/benchmark context.
 
-When working *in a research project* that uses this system:
-1. Read `STATE.md` first. The `pi-orchestrator` agent (agents/pi-orchestrator.md) owns phase changes.
-2. Hand work between agents **only through blackboard files** (`templates/blackboard/`).
-3. Invariants (never break):
-   - A statement enters `paper/` only if its `CLAIMS.md` status is `survived` (or `weakened`, using the weakened wording).
-   - A number enters `paper/` only if it has an `EVIDENCE.md` row; run `crbench audit-tex paper/main.tex EVIDENCE.md`.
-   - A bib entry stays only if `skills/bib-verify` confirmed it exists.
-   - Nothing leaves the machine (submission, e-mail, eprint, public repo) without explicit human approval.
-4. Prefer `lib/cryptomath` + `lib/bench` over ad-hoc scripts; put throw-away scripts under `falsify/<claim-id>/` or `results/<exp>/`.
-5. Toy implementations in `lib/cryptomath/fhe|lattice|protocols` are **insecure** and only for reasoning / small experiments.
+When working in a research project:
 
-When working *on this repo*: follow `SPEC.md` (names, formats, the no-private-content rule).
+1. Read `STATE.md` first. `pi-orchestrator` owns phase changes.
+2. Hand work between agents only through blackboard files and raw result logs.
+3. A statement enters `paper/` only if its `CLAIMS.md` status is `survived` or `weakened` with the weakened wording.
+4. A number enters `paper/` only if it has an `EVIDENCE.md` row; rates include n and a CI. Run `crbench audit-tex`.
+5. A citation stays only if `bib-verify` confirms it. Search the user's KB before claiming novelty.
+6. Attack experiments use owned/local or sandboxed targets only. Never test live third-party services, real users,
+   credentials, production pages or public registries. Record harm and containment in `ETHICS.md`.
+7. Keep working payloads, private/unpublished paper material and secrets out of git. Use synthetic/redacted data.
+8. Prefer `lib/agentattack` and `lib/bench` over ad-hoc scripts; throw-away scripts go under `falsify/<claim-id>/`
+   or `results/<experiment>/`.
+
+When working on this repository, follow `SPEC.md`. The `cra`/`cra-mcp` names are kept for compatibility.

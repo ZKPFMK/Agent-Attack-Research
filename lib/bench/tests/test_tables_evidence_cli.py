@@ -15,23 +15,24 @@ TOY_TEX = r"""\documentclass{llncs}
 \setlength{\tabcolsep}{4.5pt}
 \begin{document}
 \section{Evaluation}
-On the toy ring ($n=1024$) keygen takes 1.23 s and our variant 0.61 s,
-a 2.02$\times$ speed-up\evid{E3} (see Table~\ref{tab:x3} and~\cite{toy2024}).
-Memory drops from 1{,}536 MB to 768 MB.
-The estimator reports $2^{128.4}$ operations.
-An untraced claim: 17.5 ms per gate.
+On the local five-agent chain ($n=40$ trials), the proposed arm takes 1.23 s and the
+labeled-control arm 0.61 s, a 2.02$\times$ latency ratio\evid{E3}
+(see Table~\ref{tab:x3} and~\cite{toy2024}).
+The response budget drops from 1{,}536 tokens to 768 tokens.
+The judge agreement is $\kappa=0.84$.
+An untraced claim: 17.5 ms per trial.
 Here 99.9 ms is ignored % crbench:ignore
-We use 3 parties and the year 2024.
+We use 3 agents and the snapshot year 2026.
 \end{document}
 """
 
 
 def _write_ledger(path):
-    evidence.append_row(path, "1.23 s", "crbench run -a base=... ", "results/toy/run.json", "abc1234", "host:aa", "2026-01-01", "5/median")
-    evidence.append_row(path, "0.61 s", "crbench run -a new=...", "results/toy/run.json", "abc1234", "host:aa", "2026-01-01", "5/median")
+    evidence.append_row(path, "1.23 s", "crbench run -a control=... ", "results/agent-chain/run.json", "abc1234", "host:aa", "2026-01-01", "5/median")
+    evidence.append_row(path, "0.61 s", "crbench run -a proposed=...", "results/agent-chain/run.json", "abc1234", "host:aa", "2026-01-01", "5/median")
     evidence.append_row(path, "2.02×", "derived: E1/E2", "-", date="2026-01-01")
-    evidence.append_row(path, "1,536 MB → 768 MB", "gnu-time", "results/toy/mem.log", "abc1234", "host:aa", "2026-01-01", "3/median")
-    evidence.append_row(path, "2^128.4", "sage -python est.py", "results/toy/est.log", "def5678", "host:aa", "2026-01-01", "1")
+    evidence.append_row(path, "1,536 tokens → 768 tokens", "agent-jsonl", "results/agent-chain/trials.jsonl", "abc1234", "host:aa", "2026-01-01", "40")
+    evidence.append_row(path, "0.84", "aa kappa", "results/agent-chain/judge.jsonl", "def5678", "host:aa", "2026-01-01", "1")
 
 
 class TestTables(unittest.TestCase):
@@ -80,7 +81,7 @@ class TestEvidence(unittest.TestCase):
         rows = evidence.read_ledger(self.led)
         errs = [i for i in evidence.validate_ledger(rows, root=self.d) if i.severity == "error"]
         self.assertTrue(all(i.kind == "log-not-found" for i in errs))
-        for rel in ("results/toy/run.json", "results/toy/mem.log", "results/toy/est.log"):
+        for rel in ("results/agent-chain/run.json", "results/agent-chain/trials.jsonl", "results/agent-chain/judge.jsonl"):
             os.makedirs(os.path.join(self.d, os.path.dirname(rel)), exist_ok=True)
             open(os.path.join(self.d, rel), "w").write("x")
         errs = [i for i in evidence.validate_ledger(rows, root=self.d) if i.severity == "error"]
@@ -94,10 +95,10 @@ class TestEvidence(unittest.TestCase):
         rows = evidence.read_ledger(self.led)
         issues = evidence.audit_tex(self.tex, rows)
         untraced = [i.number for i in issues if i.kind == "untraced"]
-        self.assertEqual(untraced, ["17.5"])  # 99.9 ignored, n=1024/3/2024 not measurement-like, 4.5pt in preamble
+        self.assertEqual(untraced, ["17.5"])  # 99.9 ignored, n=40/3/2026 not measurement-like, 4.5pt in preamble
         strict = [i.number for i in evidence.audit_tex(self.tex, rows, strict=True) if i.kind == "untraced"]
-        self.assertIn("1024", strict)
-        self.assertIn("2024", strict)
+        self.assertIn("40", strict)
+        self.assertIn("2026", strict)
 
     def test_audit_evid_mismatch_and_unknown(self):
         rows = evidence.read_ledger(self.led)
@@ -115,7 +116,7 @@ class TestEvidence(unittest.TestCase):
         self.assertIn("17.5", buf.getvalue())
         with redirect_stdout(io.StringIO()) as o, redirect_stderr(io.StringIO()):
             rc = cli.main(["evidence", "add", self.led, "--printed", "17.5 ms", "--command", "crbench run ...",
-                           "--log", "results/toy/gate.log", "--commit", "abc", "--machine", "host:aa", "--runs", "5/median"])
+                           "--log", "results/agent-chain/gate.log", "--commit", "abc", "--machine", "host:aa", "--runs", "5/median"])
         self.assertEqual(rc, 0)
         self.assertEqual(o.getvalue().strip(), "E6")
         with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):

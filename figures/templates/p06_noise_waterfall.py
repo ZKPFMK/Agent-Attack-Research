@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""P06 -- noise-budget waterfall across a homomorphic circuit.
+"""A6 -- round-by-round adoption/state waterfall for an agent network.
 
-Pattern: x = operations in execution order; each floating bar shows the bits
-of budget one operation consumes (length = cost); a thin connector joins the
-running total; the zero line is labelled "decryption fails"; a refresh step
-(bootstrapping) is the only bar going up and uses the accent colour.
-SYNTHETIC DATA.
+Pattern: x = rounds in execution order; each bar shows a synthetic state change
+at injection, relay, probe or defense. Use this to explain a mechanism, not as
+a real-model result. SYNTHETIC DATA.
 """
 import sys, pathlib
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -15,9 +13,9 @@ import numpy as np
 
 
 def make(venue="lncs", outdir=ROOT / "examples"):
-    ops = ["fresh", "Mult", "Rot", "Mult", "Add", "Mult", "Boot", "Mult", "Mult", "Rot"]
-    delta = [0, -22, -3, -21, -1, -22, +52, -22, -21, -3]
-    start = 80.0
+    ops = ["r0", "inject", "r2", "relay", "r4", "probe", "defense", "r7", "r8", "r9"]
+    delta = [0, 1, 1, 2, -1, 2, -3, 2, 1, -1]
+    start = 0.0
     fig, ax = P.figure(venue, width="full", aspect=0.40)
     level = start
     xs = np.arange(len(ops))
@@ -36,11 +34,11 @@ def make(venue="lncs", outdir=ROOT / "examples"):
         level = new
         tops.append(level)
     ax.axhline(0, color=P.CATEGORICAL[7], lw=0.9)
-    ax.text(len(ops) - 0.5, 0, "decryption fails below 0 ", ha="right", va="bottom", fontsize="small")
+    ax.text(len(ops) - 0.5, 0, "toy adoption/state score", ha="right", va="bottom", fontsize="small")
     ax.set_xticks(xs, ops)
     ax.tick_params(axis="x", length=0)
-    ax.set_ylabel("noise budget (bits)")
-    ax.set_ylim(-5, start + 12)
+    ax.set_ylabel("toy adoption/state score")
+    ax.set_ylim(-5, 8)
     ax.set_xlim(-0.6, len(ops) - 0.4)
     return P.save(fig, "p06_noise_waterfall", outdir)
 

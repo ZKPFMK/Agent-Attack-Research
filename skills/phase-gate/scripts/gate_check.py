@@ -47,7 +47,7 @@ except ImportError:  # running from a checkout without `pip install -e lib/core`
     try:
         from cra_core.gates import PHASES, check_gate as check
     except ImportError:
-        sys.exit("gate_check.py needs the cra_core package: pip install -e <crypto-research-agents>/lib/core")
+        sys.exit("gate_check.py needs the cra_core package: pip install -e <repo>/lib/core")
 
 
 def selftest() -> int:
@@ -57,7 +57,7 @@ def selftest() -> int:
                       "- [~] figure 3 WAIVED: no data yet (DECISIONS D-4)\n## Active tasks\n- [ ] x\n")
         w("CLAIMS.md", "| ID | claim (falsifiable) | proposer | status | falsifier evidence | EVIDENCE refs |\n"
                        "|---|---|---|---|---|---|\n| C1 | toy is 2x faster | idea-miner | survived | reran, holds | E1 |\n"
-                       "| C2 | toy is optimal | theorist | refuted | counterexample n=6 | |\n")
+                       "| C2 | toy is optimal | threat-modeler | refuted | counterexample n=6 | |\n")
         w("EVIDENCE.md", "| ID | number/fact as printed in paper | command | log path | commit | machine | date | runs/median |\n"
                          "|---|---|---|---|---|---|---|---|\n| E1 | 2.0x | make bench | logs/a | abc | m1 | 2099-01-01 | 5 |\n")
         os.makedirs(os.path.join(d, "paper"))

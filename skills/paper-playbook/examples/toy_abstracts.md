@@ -1,98 +1,103 @@
 # Toy abstracts — good vs bad
 
-All three papers are **invented**. Every number is **illustrative only** and marked
-`[ill.]`; none comes from a real measurement. Citations like [A23] are placeholders.
+All three papers and systems are **invented and synthetic**. Every number is
+**illustrative only** and marked `[ill.]`; none comes from a real measurement.
+Citations like [A24] are placeholders.
 
 ---
 
-## T1 — Faster PBS via LUT packing (FHE)
+## T1 — RelayRumor: a rumor-relay attack on a 5-agent chain (MAS propagation)
 
 ### Bad
 
-> Fully homomorphic encryption is a very important and novel technology. In this
-> paper we propose a novel and efficient method for programmable bootstrapping.
-> Our method uses packing. We implemented it and it is significantly faster than
-> previous methods, up to 9.1× [ill.]. We also prove rigorous guarantees on its
-> correctness. Code is available at https://github.com/<real-username>/lutpack.
+> Multi-agent systems are a very important and novel technology. In this paper we
+> propose a novel and powerful attack that breaks all multi-agent systems. Our
+> attack achieves up to 100% [ill.] attack success rate on GPT and is
+> undetectable. Code is at https://github.com/<real-username>/relayrumor.
 
-What is wrong: no bottleneck, no prior routes, no open question; "novel",
-"significantly" without scope; the ratio has no baseline or scope; "rigorous
-guarantees" overstates; the link de-anonymises the submission.
+What is wrong: no deployment context or gap; "novel", "all", "undetectable" with no
+evidence; "up to 100%" is one cell, no n, no CI, no success criterion, no baseline;
+a vendor named as target; the link de-anonymises the submission.
 
 ### Good
 
-> Programmable bootstrapping (PBS) is the dominant cost of TFHE-style schemes, and
-> circuits over small integers spend most of their time evaluating many small
-> lookup tables. Existing work amortises PBS either by evaluating several tables in one
-> PBS of doubled ring degree [A23] (EUROCRYPT'23) or by tree-based evaluation of a
-> larger table [B24] (CRYPTO'24). Whether k small tables can share a single blind
-> rotation at the original ring degree has remained open.
+> LLM agents are increasingly chained so that each agent summarises and forwards the
+> findings of the previous one, implicitly treating a peer's message as a faithful
+> report of evidence. Existing multi-agent attacks either compromise the orchestrator
+> [A24] (ACL'24) or spread self-replicating instructions [B25] that instruction
+> detectors flag. Whether a single participant, without access to other agents'
+> prompts, can steer a chain's conclusion has not been measured.
 >
-> We present packed test polynomials, which view k tables as interleaved windows of
-> one test polynomial. We show that the window width, not the number of tables,
-> bounds the packing factor, giving k ≤ N/(2tw), and that the k outputs are separated
-> by key switching alone. Prior multi-value PBS is the case w = 1 of our construction.
-> The resulting evaluator costs one blind rotation plus k key switches for k tables.
+> We present RelayRumor, an attack in which one relay agent rewrites a true claim
+> into a plausible false one, anchors it to a true but irrelevant source, and hedges
+> it so that it survives paraphrasing by downstream agents. The attacker sees only
+> its own input and controls only its own output.
 >
-> On 6 [ill.] parameter sets at ≥128-bit estimated security, packing k = 4 [ill.]
-> tables reduces the per-table PBS latency by 2.1–3.4× [ill.] over the strongest
-> baseline in the same library, e.g. 11.0 → 3.9 ms [ill.] for 4-bit tables. Our
-> implementation is publicly available.\footnote{anonymous link}
+> In a synthetic five-agent fact-checking chain with 4 [ill.] open-weight victim
+> models (n = 300 [ill.] tasks each; success judged by a programmatic answer check),
+> the final agent adopts the false claim in 41% [ill.] of runs [95% CI 35–47 ill.],
+> versus 9% [ill.] for direct injection, while benign accuracy on unattacked claims
+> stays within 2 [ill.] points. An instruction detector flags 3% [ill.] of RelayRumor
+> messages at a 1% false-positive rate; requiring each agent to retrieve its own
+> evidence reduces adoption to 6% [ill.]. Our harness and benign templates are
+> available.\footnote{anonymous link}
 
 ---
 
-## T2 — New differential distinguisher (symmetric cryptanalysis)
+## T2 — Tool-description poisoning (external interaction)
 
 ### Bad
 
-> We study the security of ToySPN-64. Using SAT solvers, we found a new
-> distinguisher. Our distinguisher is the best one. This shows ToySPN-64 is insecure.
+> We study tool poisoning. Using prompt engineering we found descriptions that make
+> agents call our tool. This shows that tool-using agents are insecure.
 
-Wrong: "study" with no result; no prior best; "best" without comparison; overclaims
-insecurity from a distinguisher on reduced rounds.
+Wrong: "study" with no result; no threat model (who writes the description?); no
+scope; overclaims "agents are insecure" from one setting.
 
 ### Good
 
-> ToySPN-64 is a lightweight 64-bit SPN whose designers claim resistance to
-> differential cryptanalysis beyond 4 rounds [C22]. Prior analyses search
-> characteristics one trail at a time [C22, D23] and reach 4 rounds with
-> probability 2^{-60} [ill.]; clustering of trails into differentials has not been
-> exploited.
+> Tool-using agents select tools from registries whose descriptions are written by
+> third parties and inserted verbatim into the agent's context. Prior injection
+> attacks place instructions in tool *outputs* [C24], which output-side detectors now
+> screen [D25]; the description itself, read before any call, has received less
+> attention.
 >
-> We model truncated differences and trail clustering jointly in one SAT
-> instance, counting all characteristics compatible with a fixed input/output
-> difference. We show that the S-box admits a 2-round iterative truncated pattern
-> that the designers' bound does not cover.
+> We show that a third-party tool author who controls only the name and description
+> of one tool in a registry of 20 [ill.] tools can make a sandboxed email assistant
+> select that tool and forward the user's draft to it. Descriptions are optimised
+> black-box against a surrogate model and transfer to held-out victims.
 >
-> This yields a 6-round distinguisher with probability 2^{-58} [ill.], two rounds
-> beyond the designers' claim, verified experimentally on 5 rounds with 2^{30} [ill.]
-> pairs. The full-round cipher is not affected. Our models and verification scripts
-> are available.\footnote{anonymous link}
+> Across 3 [ill.] victim models and 120 [ill.] benign tasks each, the poisoned tool is
+> selected in 58% [ill.] of tasks [CI 49–66 ill.] and the draft is forwarded in 33%
+> [ill.] [CI 25–42 ill.], against 4% [ill.] for the strongest prior description
+> attack in the same harness. An adaptive description sanitiser lowers forwarding to
+> 12% [ill.] with a 5-point [ill.] utility loss. All experiments use a mock registry;
+> no public marketplace was contacted.
 
 ---
 
-## T3 — PSI with lower communication (protocols)
+## T3 — Query-only memory injection (internal cognition)
 
 ### Bad
 
-> PSI has many applications. We give a new PSI protocol which uses less
-> communication than all other protocols.
+> Agents with memory can be attacked. We give a new attack which is better than all
+> other memory attacks.
 
-Wrong: no setting (balanced/unbalanced, semi-honest/malicious), "all other
-protocols" is unfalsifiable, no numbers.
+Wrong: no setting (who can write to memory, how?); "all other" is unfalsifiable;
+no numbers, no utility, no defenses.
 
 ### Good
 
-> Unbalanced private set intersection, where a client with m items queries a server
-> with n ≫ m items, is dominated by communication linear in n in OPRF-based protocols
-> [E21] (CCS'21) and by expensive homomorphic evaluation in FHE-based ones [F22]
-> (USENIX'22). Whether OPRF-based protocols can reach communication sublinear in n
-> without homomorphic encryption has remained open.
+> Agents that store past interactions in a retrieval memory let any user influence
+> what later users retrieve. Prior memory attacks either write directly to the store
+> [E24] (NeurIPS'24) or require the trigger to appear in the victim's query [F25].
 >
-> We present a cuckoo-filter variant whose false-positive rate depends on the
-> fingerprint length only, not on the load factor, and use it to compress the
-> server's OPRF outputs. We prove semi-honest security in the OPRF-hybrid model.
+> We show that an attacker who can only issue ordinary queries can plant records that
+> are retrieved for a *different* user's semantically related questions, by
+> phrasing queries so that the agent's own summaries carry the false record.
 >
-> For n = 2^{24} and m = 2^{10} [ill.], our protocol sends 1.3× [ill.] fewer bytes
-> than the best OPRF-based baseline at the same statistical security σ = 40, with
-> the same round count. Source code is provided.\footnote{anonymous link}
+> On a synthetic customer-support agent with a 5,000-record [ill.] memory and 2 [ill.]
+> victim models, planted records are retrieved for 37% [ill.] of related victim
+> queries (n = 400) [ill.] and change the answer in 21% [ill.] [CI 17–25 ill.], with
+> no measurable change in benign answer accuracy. Memory-write filtering with a
+> provenance tag blocks the attack; we release the harness with synthetic data only.

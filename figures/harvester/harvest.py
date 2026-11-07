@@ -13,7 +13,7 @@ location.
 
 Usage::
 
-    python3 harvest.py CORPUS_DIR [CORPUS_DIR ...] --out /tmp/crypto_gallery \
+    python3 harvest.py CORPUS_DIR [CORPUS_DIR ...] --out /tmp/agent_attack_figures \
         --exclude 'ours_prior' --exclude '*.zip' --timeout 90
 
     python3 harvest.py --selftest      # builds a synthetic PDF and checks it
@@ -60,12 +60,11 @@ TYPES = [
     "plot-line",
     "plot-scaling",
     "table-like",
-    "protocol-flow",
-    "architecture-pipeline",
-    "circuit-cipher",
-    "lattice-geometric",
+    "message-flow",
+    "agent-architecture",
+    "state-machine",
+    "topology-graph",
     "heatmap-matrix",
-    "tree-graph",
     "pseudocode-box",
     "other",
 ]
@@ -79,26 +78,22 @@ KEYWORDS: dict[str, list[tuple[str, float]]] = {
     "plot-scaling": [(r"scal", 2.5), (r"log[- ]?scale|log-log|logarithmic", 3), (r"asymptot", 2),
                      (r"grow", 1.5), (r"number of (slots|threads|parties|cores)", 2)],
     "table-like": [(r"\btable", 2), (r"parameter sets?", 1.5), (r"summary of", 1)],
-    "protocol-flow": [(r"protocol", 3), (r"\bparty|parties", 2), (r"sender|receiver", 2.5), (r"client|server", 2),
-                      (r"message", 1.5), (r"interaction", 2), (r"functionality|ideal", 1.5), (r"\bgame\b|hybrid", 1.5),
-                      (r"experiment", 1)],
-    "architecture-pipeline": [(r"overview", 2.5), (r"pipeline", 3), (r"architecture", 3), (r"framework", 2),
-                              (r"workflow|flow of", 2), (r"procedure", 1), (r"bootstrapping", 1.5), (r"steps?\b", 1),
-                              (r"illustration", 1.5), (r"diagram", 1), (r"high-level", 2),
-                              (r"structure", 1.5), (r"data-?flow", 3), (r"\bblock", 1.5), (r"computation on", 1.5),
-                              (r"lowering|compiler|\bir\b", 2)],
-    "circuit-cipher": [(r"round", 2.5), (r"s-?box", 3), (r"cipher", 2.5), (r"circuit", 3), (r"\bgates?\b", 2),
-                       (r"\bxor\b", 2), (r"permutation", 1.5), (r"key schedule", 3), (r"feistel|spn", 3),
-                       (r"trail|characteristic", 2)],
-    "lattice-geometric": [(r"lattice", 2.5), (r"basis", 2), (r"geometr", 2.5), (r"\bball\b|sphere", 2),
-                          (r"fundamental domain|parallelepiped|voronoi", 3), (r"embedding", 1), (r"region", 1),
-                          (r"\bplane\b", 1.5)],
-    "heatmap-matrix": [(r"heat ?map", 3.5), (r"\bmatrix|matrices", 2), (r"\bddt\b|\blat\b|difference distribution", 3),
-                       (r"correlation", 1.5), (r"diagonal", 1.5), (r"grid", 1.5), (r"sparsity", 2)],
-    "tree-graph": [(r"\btree", 3), (r"\bgraph", 1), (r"\bdag\b", 3), (r"\bnodes?\b", 2), (r"recursion|recursive", 1.5),
-                   (r"butterfly|ntt|fft", 1.5), (r"depth", 1)],
-    "pseudocode-box": [(r"algorithm", 2.5), (r"pseudo-?code", 3), (r"\bconstruction", 2.5), (r"scheme", 1.5),
-                       (r"definition", 1.5), (r"\bkeygen|encrypt|decrypt", 2), (r"procedure", 1.5)],
+    "message-flow": [(r"protocol", 2), (r"\bpeer|agent|party|parties", 2), (r"sender|receiver", 2.5),
+                      (r"message|handoff|channel", 2), (r"interaction|conversation", 2), (r"tool call|memory write", 2),
+                      (r"probe|round", 1)],
+    "agent-architecture": [(r"overview", 2.5), (r"pipeline", 2.5), (r"architecture", 3), (r"framework", 2),
+                            (r"workflow|flow of", 2), (r"retrieval|planner|router|tool", 1.5), (r"steps?\b", 1),
+                            (r"illustration", 1.5), (r"diagram", 1), (r"high-level", 2),
+                            (r"data-?flow|control flow", 3), (r"memory|RAG|MCP", 2), (r"detector|defense", 1.5)],
+    "state-machine": [(r"state", 2.5), (r"transition", 2.5), (r"finite-state|automaton", 3), (r"exposure|adoption|retraction", 2),
+                       (r"belief|provenance|label", 1.5), (r"round", 1)],
+    "topology-graph": [(r"topology|graph", 2.5), (r"chain|ring|star|complete", 2), (r"node|edge|neighbou?r", 2),
+                        (r"propagation|diffusion|spread", 2.5), (r"DAG|network|tree", 2),
+                        (r"recursion|recursive", 1.5)],
+    "heatmap-matrix": [(r"heat ?map", 3.5), (r"\bmatrix|matrices", 2), (r"ASR|utility|detection", 2),
+                       (r"correlation", 1.5), (r"grid", 1.5), (r"sparsity", 2)],
+    "pseudocode-box": [(r"algorithm", 2.5), (r"pseudo-?code", 3), (r"\bconstruction", 2.5), (r"workflow", 1.5),
+                       (r"definition", 1.5), (r"procedure", 1.5), (r"rubric|protocol", 1.5)],
 }
 KEYWORDS_C = {t: [(re.compile(p, re.I), w) for p, w in kw] for t, kw in KEYWORDS.items()}
 
@@ -456,19 +451,17 @@ def classify(caption: str, st: dict) -> tuple[str, dict]:
     if st["n_hlines"] >= 4 and st["n_hlines"] > 2 * max(st["n_vlines"], 1) and td > 10 and nc < 5 and not axes:
         s["table-like"] += 2.5
     if st["n_arrowheads"] >= 2 and st["n_hlines"] >= 2 and td > 6 and not axes:
-        s["protocol-flow"] += 1.5
+        s["message-flow"] += 1.5
     if st["n_arrowheads"] >= 3 and 3 <= nr <= 60 and not axes:
-        s["architecture-pipeline"] += 2.0
-    if st["xor_symbols"] >= 2 or (nc > 20 and st["n_vlines"] > 10 and nr > 4 and "round" in cap):
-        s["circuit-cipher"] += 2.5
+        s["agent-architecture"] += 2.0
+    if st["n_vlines"] > 8 and nr > 4 and ("state" in cap or "transition" in cap):
+        s["state-machine"] += 2.5
     if nc > 20 and st["n_diag"] > 3 and td < 5 and st["n_filled_rects"] < 5 and not axes:
-        s["lattice-geometric"] += 1.0
-        s["tree-graph"] += 1.0
+        s["topology-graph"] += 2.0
     if nr <= 3 and td > 12 and st["n_diag"] < 5 and nc < 10 and not axes:
         s["pseudocode-box"] += 2.5
     if st["math_chars"] > 15 and td > 10:
         s["pseudocode-box"] += 1.0
-        s["protocol-flow"] += 0.5
     # scaling curves are line plots with log/scal words
     if s["plot-scaling"] > 0:
         s["plot-scaling"] += 0.5 * (s["plot-line"] > 0)

@@ -1,38 +1,40 @@
 # Quickstart
 
-## 1. Install
+## Install
+
 ```bash
-pip install -e lib/core -e lib/cryptomath -e lib/bench
-./install.sh ~/papers/my-new-paper          # copies agents/skills/commands into .claude/
-cd ~/papers/my-new-paper && claude
+python3 -m pip install -e lib/core -e lib/agentattack -e lib/mcp -e lib/bench
+./install.sh ~/papers/my-agent-attack
+cd ~/papers/my-agent-attack
+export CRA_KB=/absolute/path/to/Agent安全论文知识库.md
+claude
 ```
-Optional tools the agents use when present: SageMath, lattice-estimator, Lean 4 + Mathlib
-(lean-lsp MCP), Mathematica MCP, `latexmk`, `pdffonts`, SAT solvers (cadical / cryptominisat), HiGHS/scipy.
 
-## 2. A typical week-by-week run
-| Step | You type | What happens |
+Optional: install `cra-studio` for the local UI, `latexmk` for papers, and a local/OpenAI-compatible model
+endpoint for approved experiments. The toy testbed and all self-tests are offline.
+
+## A typical run
+
+| step | command | result |
 |---|---|---|
-| 1 | `/cra-init .` | blackboard files + `paper/` skeleton; you give thesis, venue, deadline |
-| 2 | `/cra-lit "TFHE programmable bootstrapping many LUTs"` | lit-scout builds the matrix, verifies every bib entry, flags pre-emption |
-| 3 | `/cra-ideas "PBS dominates the cost of evaluating S-boxes"` | idea-miner runs the 8-step loop, cost-models ideas, registers claims |
-| 4 | `/cra-phase P3` | theorist proves / numerically checks, estimates parameters, optionally formalises in Lean |
-| 5 | `/cra-phase P4` then `/cra-bench "<A vs B spec>"` | baselines pinned and reproduced; interleaved benchmarks → EVIDENCE |
-| 6 | `/cra-falsify` | falsifier attacks every open claim; refuted ones go back to P2/P3 |
-| 7 | `/cra-write intro`, `/cra-figure "speedup vs #LUTs"` | only survived claims and logged numbers are used |
-| 8 | `/cra-review EUROCRYPT` → fix → `/cra-submit` | mock review, anonymisation, checklist, artifact |
-| 9 | `/cra-rebuttal reviews.txt 700` | triage + short submitted version + detailed internal version |
+| 1 | `/cra-init .` | blackboard, threat/labels/results dirs and article skeleton |
+| 2 | `/cra-lit "memory poisoning in multi-agent systems"` | KB/public search, literature matrix, verified references |
+| 3 | `/cra-ideas "<attack bottleneck>"` | Gate A/B ideas, naive controls, KB position and open claims |
+| 4 | `/cra-phase P3` | threat model, realism, pilot and judge validation |
+| 5 | `/cra-phase P4` then `/cra-bench "<attack vs defense grid>"` | pinned baselines, interleaved trials, CIs and evidence |
+| 6 | `/cra-falsify` | attack success/judge/base-model/defense/novelty/ethics red team |
+| 7 | `/cra-write intro` and `/cra-figure "ASR vs defense"` | evidence-linked paper and figures |
+| 8 | `/cra-review "CCS"` then `/cra-submit` | venue review, anonymisation, artifact and release gate |
 
-At any time: `/cra-status`.
+At any point use `/cra-status`. Outside Claude Code install `cra-mcp` and call `cra_resume` first.
 
-## 3. Heavy multi-agent rounds (optional)
-With Claude Code's Workflow tool:
+## Offline demo
+
+```bash
+aa selftest
+cd case-study/toy-agent-attack
+PYTHONPATH=../../lib/agentattack python3 code/run_experiment.py
+PYTHONPATH=../../lib/agentattack python3 code/check_claim.py
 ```
-Workflow({scriptPath: ".cra/workflows/falsify-round.js", args: {project: "<abs path>"}})
-```
-Other scripts: `lit-sweep.js`, `idea-tournament.js`, `mock-review-panel.js`.
 
-## 4. Adapting to your group
-- Add venue profiles in `skills/venue-calibration/SKILL.md`.
-- Add your own baselines to `references/baselines/MANIFEST.md`.
-- Add figure patterns by harvesting your own corpus: `python3 figures/harvester/harvest.py <pdf-dir> --out figures/gallery`.
-- New agent: copy any `agents/*.md`, keep the section structure (Mission / Inputs / Outputs / Procedure / Skills / Library / Hand-off / Lessons), and register its blackboard file in `SPEC.md`.
+The example uses only a deterministic mock backend and synthetic text. It is not a vulnerability result.

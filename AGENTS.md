@@ -1,29 +1,13 @@
-# crypto-research-agents — instructions for Codex / generic coding agents
+# agent-attack-research-agents — instructions for Codex and generic agents
 
-This repo is a **toolkit**, not a research project. Research happens in a separate
-project directory initialised with `/cra-init <dir>` (see `docs/QUICKSTART.md`).
+This repo is a falsify-first toolkit for research on attacks against LLM agents and multi-agent systems. Research
+happens in a separate project initialized with `/cra-init <dir>`.
 
-When working *in a research project* that uses this system:
-1. Read `STATE.md` first. The `pi-orchestrator` agent (agents/pi-orchestrator.md) owns phase changes.
-2. Hand work between agents **only through blackboard files** (`templates/blackboard/`).
-3. Invariants (never break):
-   - A statement enters `paper/` only if its `CLAIMS.md` status is `survived` (or `weakened`, using the weakened wording).
-   - A number enters `paper/` only if it has an `EVIDENCE.md` row; run `crbench audit-tex paper/main.tex EVIDENCE.md`.
-   - A bib entry stays only if `skills/bib-verify` confirmed it exists.
-   - Nothing leaves the machine (submission, e-mail, eprint, public repo) without explicit human approval.
-4. Prefer `lib/cryptomath` + `lib/bench` over ad-hoc scripts; put throw-away scripts under `falsify/<claim-id>/` or `results/<exp>/`.
-5. Toy implementations in `lib/cryptomath/fhe|lattice|protocols` are **insecure** and only for reasoning / small experiments.
+Read `STATE.md` before working in a project; use blackboard files for hand-offs; register claims before developing
+or writing them; make the falsifier attack open claims; trace every paper number to EVIDENCE.md; verify references;
+position ideas against the KB; and use only owned/local or sandboxed targets. Nothing leaves the machine without
+explicit human approval. Do not commit live-target payloads, secrets, personal data, private research content or
+copyrighted PDFs. See `SPEC.md` for names, schemas, phases and the `agentattack` API.
 
-When working *on this repo*: follow `SPEC.md` (names, formats, the no-private-content rule).
-
-## Using the system through MCP (recommended outside Claude Code)
-`cra-mcp install --host <codex|cline|gemini|cursor|...> --project <dir>` connects the `cra` MCP server
-(see docs/integrations/README.md). Then call the `cra_resume` tool first in every session and change the
-ledgers only through the typed tools (`claim_register`, `claim_verdict`, `evidence_add`, `decision_log`,
-`gate_tick`, `phase_advance`), which enforce the invariants above.
-
-## Using the agents without Claude Code subagents
-Each file in `agents/` is a self-contained role prompt. In tools without subagents,
-"become" an agent by reading its file and following its Procedure; skills in
-`skills/<name>/SKILL.md` are plain Markdown procedures with optional scripts.
-Slash commands in `commands/` are equivalent to typing their body as a prompt.
+Outside Claude Code, use `cra-mcp`: call `cra_resume` first, then use typed ledger tools. The Python CLI `aa`
+provides `kb-search`, `kb-list`, `rate`, `kappa`, `threat-check`, `sim` and `selftest`.

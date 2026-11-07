@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cra-studio"
 version = "0.2.0"
-description = "CRA Studio: local desktop workbench for crypto-research-agents -- projects, ledgers, phase gates and an LLM research agent on any OpenAI-compatible API; the same executable is also the cra MCP server."
+description = "CRA Studio: local desktop workbench for agent-attack-research-agents -- projects, ledgers, phase gates and an LLM research agent on any OpenAI-compatible API; the same executable is also the cra MCP server."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = ["cra-core>=0.2.0", "cra-mcp>=0.2.0", "starlette", "uvicorn"]

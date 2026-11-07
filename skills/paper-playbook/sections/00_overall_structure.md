@@ -1,88 +1,95 @@
 # 00 Overall structure, page budget, layout rules
 
-## Default skeleton (IACR LNCS conference paper)
+## Default skeleton (attack paper)
 
-Page counts are for a body limit of roughly 25–30 LNCS pages; scale proportionally.
-Always check the current CFP for the actual limit and for what counts toward it.
+Shares are of the body; scale to the venue's limit. Security venues (two-column,
+~13 pp. body in recent years) and ML/NLP venues (~8–9 pp. main text in recent years)
+differ a lot; always check the current CFP for the limit and for what counts toward
+it (see `skills/venue-calibration`).
 
 | § | title | share of body | job |
 |---|---|---|---|
-| — | Abstract + keywords | page 1 | state of the art → our technique → results + artifact |
-| 1 | Introduction | ~5% | funnel from field to bottleneck; pipeline; objective equation; open question |
-| 1.1 | Related Work | ~7% | comparison table + axis paragraphs + bridge + "Our work" |
-| 1.2 | Our Contributions | ~4% | lead-in + 3–4 ordered bullets |
-| 1.3 | Technique Overview | ~12–15% | recall prior routes → reduce to precise questions → insights → figure |
-| 1.4 | Organisation (optional) | 2–3 lines | only if the paper is long |
-| 2 | Preliminaries | ~12–18% | notation table; scheme recap; only what is reused later |
-| 3–5 | Main construction(s) | ~35% | theorem → construction → cost / selection rule → algorithm |
-| 6 | Security / correctness | varies | security claim, attack checklist, noise/failure analysis |
-| 7 | Implementation and evaluation | ~12–15% | baselines, platform, parameters, configurations, results, ablation, comparison |
-| 8 | Conclusion | ≤ 0.5 page | two to three sentences |
-| A– | Appendix | unlimited | proofs, extra tables, reproduction details |
+| — | Abstract | page 1 | gap → our attack → results (ASR with scope) + defenses + disclosure |
+| 1 | Introduction | ~12% | motivating attack example (Figure 1), gap, challenges, our attack, contributions |
+| 1.x | Contributions | (inside §1) | lead-in + 3–4 ordered bullets |
+| 2 | Background & related work | ~10% | agent/MAS model, frameworks attacked, related attacks by surface, comparison table |
+| 3 | Threat model | ~6% | goal, knowledge, capabilities, access point, victims, success criterion, out of scope |
+| 4 | Attack design | ~22% | overview figure; key insights; components; algorithm; payload construction (redacted); cost |
+| 5 | Evaluation | ~30% | setup, metrics (ASR/utility/stealth/cost, n, CI), main results, ablations, transferability, case study |
+| 6 | Defenses | ~8% | existing defenses incl. adaptive attacker; possible mitigations |
+| 7 | Discussion & limitations | ~4% | scope of validity, failure cases, what is not claimed |
+| 8 | Ethics considerations & responsible disclosure | ~3% (or the venue's mandated section) | harm, containment, disclosure, release policy |
+| 9 | Conclusion | ≤ 0.3 page | two to three sentences |
+| A– | Appendix | per CFP | prompts (redacted), judge prompt + validation, per-model tables, cost details |
 
 Variants:
 
-- **Symmetric design papers (ToSC/FSE):** security analysis is usually the largest
-  section (roughly a quarter to a third); a separate *Design rationale* section is
-  longer than the specification itself; related work may sit in a "state of the art"
-  subsection of the constraints section.
-- **Cryptanalysis papers:** the target's specification goes in §1 (e.g. §1.2), not in
-  its own section; the core distinguishing property gets its own section, the attack
-  another.
-- **Security conferences (CCS/S&P/USENIX/NDSS/PoPETs):** two-column formats; threat
-  model and system overview are expected early; evaluation carries more weight.
-- **Theory venues (TCC):** no experiments section; the technique overview often
-  becomes the main exposition.
+- **Security venues (CCS/S&P/USENIX/NDSS):** threat model is an early, standalone
+  section; related work often sits near the end; an ethics section (and for some, an
+  open-science section) is expected; evaluation must show real-framework realism
+  and an adaptive-defense discussion.
+- **ML/NLP venues (ACL/EMNLP/NAACL via ARR, NeurIPS, ICLR, ICML, COLM):** related work
+  usually after the introduction; a *Limitations* section (ARR: mandatory, outside the
+  page limit in recent cycles) and an *Ethics statement*; a responsible-NLP or
+  NeurIPS checklist; more emphasis on many models, benchmarks and ablations.
+- **Benchmark/measurement papers:** replace "Attack design" with "Benchmark
+  construction" and keep threat model + judge validation; see the
+  `benchmark-paper-template` skill if installed.
+- **SoK papers:** taxonomy + systematised comparison table replace §4–5.
 
 ## Page discipline
 
 Legal ways to save space, in order of preference:
 
-1. Tighten floats: algorithms `\footnotesize`, tables `\scriptsize` with
+1. Tighten floats: algorithms `\footnotesize`, tables `\small`/`\scriptsize` with
    `\arraystretch` 0.88–0.92, `\tabcolsep` 2.5–3pt.
-2. Reduce global float/display glue in the preamble (`\textfloatsep`, `\intextsep`,
-   `\floatsep`, `\abovedisplayskip`): modest reductions only.
-3. Scale TikZ figures by 5–15%.
+2. Move per-model breakdowns, full prompts and judge validation details to the
+   appendix; keep the summary row and the CI in the body.
+3. Merge Figure 1 and the attack-overview figure if they show the same pipeline.
 4. Remove footnote URLs duplicated elsewhere.
-5. Only then cut sentences — cut adjectives before content, never cut numbers'
-   scoping sentences.
+5. Only then cut sentences — cut adjectives before content, never cut a number's
+   scope sentence (models, n, judge).
 
-**Forbidden (desk-reject risk):** `geometry` or any margin change, font-size change,
-line-spacing change, removing page numbers when the CFP requires them.
+**Forbidden (desk-reject risk):** changing margins (`geometry`), font size, line
+spacing, removing or altering the venue style's anonymity/line numbers, putting
+required sections (Limitations at ARR) inside the page limit when they must be
+after it or vice versa. Overprinting after a negative `\vspace` before a float is
+a classic trap; scan with the camera-ready overlap checker.
 
-**Overprinting trap:** a negative `\vspace` immediately before a float
-(`algorithm`/`table`/`figure`) can make text overprint the float in the PDF while the
-editor preview looks fine. Put negative glue *inside* the float before `\end{...}`,
-or delete it; scan the PDF with the camera-ready overlap checker.
+## Terminology and naming freeze (before writing, grep after writing)
 
-After every edit near the limit, rebuild and confirm the conclusion still ends on the
-last allowed page (see `skills/camera-ready`).
+Keep `paper/NOTATION.md` (term/symbol, meaning, first defined in §):
 
-## Notation and naming freeze (before writing, grep after writing)
+- One name per role: *attacker*, *victim agent*, *benign agent*, *user*,
+  *orchestrator*, *tool*, *environment*. Do not alternate "malicious agent" /
+  "adversarial agent" / "compromised agent" unless they denote different capabilities.
+- One name per metric: **ASR** (attack success rate, defined by the success
+  criterion of §3), **utility** (benign task success under attack / without attack),
+  **stealth** (e.g. detection rate by a named detector, or human/judge flag rate),
+  **cost** (tokens, API calls, wall-clock, $ at a stated price date).
+- One name for the attack (one word or acronym) used in title, headings, figure
+  captions, contributions and tables.
+- Model names exactly as the provider's snapshot id at first use (e.g. a dated API
+  snapshot or an open-weight checkpoint revision), short name afterwards; the mapping
+  table goes to the setup section.
 
-- One concept, one symbol. Keep a table in `paper/NOTATION.md` (symbol, meaning,
-  first defined in §). Replace globally and grep for the old symbol afterwards —
-  including glued macros like `\inS` produced by careless replacement.
-- One name for the framework/object: pick one word (e.g. "unified" vs "general") and
-  use it in the title, section headings, figure captions, contributions and overview.
-- Write membership as `$x \in S$`, not `$S \ni x$`.
-- Theorem numbers in the appendix refer back with `\Cref` to the body numbering; do
-  not renumber restated theorems.
-- Formulas in the overview are **copied** from the body statements, not retyped.
-
-## Global style rules (distilled from author preferences)
+## Global style rules
 
 - Avoid em/en dashes as sentence punctuation; use commas, colons or separate
   sentences. (Ranges like `2--3` are fine.)
-- No "explanatory" mini-headings such as "Why X is needed" or "Where the cost goes";
-  they read as padding. Use statement-style paragraph headings (see overview file).
-- Keep the notation table compact and inside the Notation subsection.
-- Make the paper standalone for a general cryptographic reader: the first pages
-  (title, abstract, introduction) must summarise the contribution without the body.
+- Statement-style paragraph headings ("A single relay suffices to flip the chain's
+  verdict."), not "Why X is needed".
+- Never write "the model believes/wants"; write what was measured ("the victim
+  outputs the false claim in 41% [ill.] of runs").
+- Harmful content: describe the *category* and *mechanism*; print payloads only in
+  redacted form; never print working exploits for unpatched deployed systems.
+- The first pages (title, abstract, introduction with Figure 1) must summarise
+  attack, threat model and headline result without the body.
 
 ## Checklist
 
-- [ ] Section shares roughly match the budget; the conclusion is on the last body page.
-- [ ] No layout-changing package; page numbers present; paper size as required.
-- [ ] Notation table frozen; old symbols grep to zero.
-- [ ] Framework name identical in title, headings, captions, contributions, overview.
+- [ ] Section shares roughly match the budget; the required sections (limitations,
+      ethics, checklist) are placed as the CFP requires.
+- [ ] No layout-changing package; venue style options correct (anonymous/review).
+- [ ] Terminology table frozen; variant names grep to zero.
+- [ ] Attack name identical in title, headings, captions, contributions, tables.

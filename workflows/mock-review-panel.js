@@ -1,19 +1,9 @@
-export const meta = {
-  name: 'cra-mock-review',
-  description: 'Venue-calibrated mock review by three reviewer personas, then meta-review with prioritised action items',
-  whenToUse: 'Phase P8 before submission, and after each major revision',
-  phases: [{ title: 'Review' }, { title: 'Meta' }],
-}
-// args: { project: "/abs/path", venue: "EUROCRYPT" , pdf: "paper/main.pdf" }
-const P = args.project, V = args.venue, PDF = args.pdf || 'paper/main.pdf'
-const REVIEW = { type: 'object', properties: { score: { type: 'number' }, confidence: { type: 'number' },
-  strengths: { type: 'array', items: { type: 'string' } }, weaknesses: { type: 'array', items: { type: 'string' } },
-  questions: { type: 'array', items: { type: 'string' } } }, required: ['score', 'weaknesses'] }
-const PERSONAS = ['expert-skeptic in exactly this sub-area', 'generalist PC member from a neighbouring area', 'implementer who will try to reproduce the numbers']
+export const meta = { name: 'cra-mock-review-panel', description: 'Run venue-calibrated reviews of an LLM-agent attack paper', phases: [{ title: 'Review' }, { title: 'Verify' }, { title: 'Route' }] }
+const P = (args && args.project) || '.', V = args?.venue || 'security or ML/NLP venue'
 phase('Review')
-const reviews = (await parallel(PERSONAS.map(p => () => agent(
-  `Review ${P}/${PDF} for ${V} as a ${p}. Use skills/venue-calibration for the scoring scale. Check claims against ${P}/CLAIMS.md and ${P}/EVIDENCE.md.`,
-  { agentType: 'reviewer-sim', phase: 'Review', label: p, schema: REVIEW })))).filter(Boolean)
-phase('Meta')
-return await agent(`Write a meta-review into ${P}/REVIEWS.md (new round) from these reviews, then list action items each routed to an agent (writer/experimenter/theorist/figure-artist/lit-scout).\n${JSON.stringify(reviews)}`,
-  { agentType: 'reviewer-sim', label: 'meta-review' })
+const personas = ['security expert skeptic: threat-model reachability, adaptive defenses, disclosure', 'ML/NLP generalist: mechanism clarity, metric/judge validity, novelty vs KB', 'implementer: snapshots, seeds, framework, cache, artifact reproducibility', 'ethics reviewer: live-target boundaries, payload release, vendor disclosure']
+const reviews = await parallel(personas.map((p, i) => agent(`Review ${P}/paper for ${V}. Persona: ${p}. Read CLAIMS.md, EVIDENCE.md, THREAT-MODEL.md, ETHICS.md and LITERATURE.md. Return critical/major/minor findings with an executable fix and evidence id or missing evidence.`, { label: `persona-${i}`, effort: 'low' })))
+phase('Verify')
+const checked = await parallel(reviews.filter(Boolean).map((r, i) => agent(`Adversarially verify these review findings against ${P}'s files and raw logs. Keep only real findings, say what command or file proves each. ${JSON.stringify(r)}`, { label: `verify-${i}`, effort: 'low' })))
+phase('Route')
+return await agent(`Write ${P}/REVIEWS.md with verified findings, severity, evidence and owner agent. Route missing experiment findings to experimenter, threat gaps to threat-modeler, KB gaps to kb-curator, and ethics/release findings to submission-rebuttal. ${JSON.stringify(checked)}`, { label: 'meta-review', effort: 'low' })

@@ -121,3 +121,10 @@ Per-library benchmark recipes (parser + typical command) are in `crbench adapter
 5. It runs `crbench run` with the baseline as its only arm, repeated at least 3 times,
    to get a reference median.
 6. It hands the recipe to `experimenter`.
+
+## Agent-attack baseline checklist
+
+A real project pins public attack/defense/benchmark code by full commit, model snapshot/API date, framework
+version, prompts, temperature, tasks, seed grid, success rule, license/ToS and adaptive-attacker assumptions.
+The local `agentattack` mock testbed is a synthetic reference only; it must never be presented as a real-model
+baseline.

@@ -4,7 +4,7 @@ Ledger format (SPEC §3), a single Markdown table::
 
     | ID | number/fact as printed in paper | command | log path | commit | machine | date | runs/median |
     |----|----|----|----|----|----|----|----|
-    | E1 | 1.23 s | crbench run ... | results/toy/run.json | 1a2b3c4 | host:ab12cd | 2026-01-01 | 5 / median |
+    | E1 | 1.23 s | crbench run ... | results/agent-chain/run.json | 1a2b3c4 | host:ab12cd | 2026-01-01 | 5 / median |
     | E2 | 2.00× | derived: E1/E3 | - | - | - | 2026-01-01 | - |
 
 Rules enforced here:

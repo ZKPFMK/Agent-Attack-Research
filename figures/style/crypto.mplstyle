@@ -1,4 +1,4 @@
-# crypto.mplstyle -- house style base for crypto-research-agents figures.
+# Compatibility filename: this is the Agent Attack house style base.
 # Combine with a venue sheet:  plt.style.use(["crypto.mplstyle", "lncs.mplstyle"])
 # or simply call figures.style.palette.use("lncs").
 #

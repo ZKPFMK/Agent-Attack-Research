@@ -23,7 +23,7 @@ def next_actions(P, limit: int = 6) -> list[dict]:
             acts.append({
                 "agent": "falsifier",
                 "task": f"Try hard to REFUTE claim {c.id}: {c.claim[:300]}",
-                "inputs": ["CLAIMS.md", "EVIDENCE.md", "THEORY.md", f"falsify/{c.id}/"],
+                "inputs": ["CLAIMS.md", "EVIDENCE.md", "THREAT-MODEL.md", f"falsify/{c.id}/"],
                 "output": f"verdict via claim_verdict({c.id}, survived|weakened|refuted, evidence=<script/log path>)",
                 "tool": "claim_verdict",
                 "rules": "write scripts under falsify/<id>/ and keep their logs; report real output, never invent "

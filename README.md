@@ -1,81 +1,92 @@
-# crypto-research-agents
+# agent-attack-research-agents
 
-**A multi-agent research system for cryptography papers** — from literature search to camera-ready —
-packaged as Claude Code agents, skills and slash commands **and as an MCP server (`cra-mcp`) for Codex,
-Cline + DeepSeek, Gemini CLI, Cursor, VS Code, ChatGPT and other MCP hosts**,
-with a Python algorithm library, a fair-benchmarking harness, a figure kit and a worked toy example.
+**A falsify-first multi-agent research system for attacks on LLM agents and LLM multi-agent systems** — from
+knowledge-base positioning and threat modelling through controlled evaluation, red-teaming, paper writing,
+responsible disclosure and camera-ready packaging. It is available as Claude Code agents/skills/commands, an MCP
+server (`cra-mcp`) for Codex, Cline, Gemini CLI, Cursor, VS Code and other MCP hosts, a stdlib-first Python
+library (`agentattack`) and a local CRA Studio UI.
 
-[中文说明](docs/zh/README.md) · [**Use from any platform / 各平台接入**](docs/integrations/README.md) · [**CRA Studio desktop app**](docs/studio.md) · [BIGMAP](docs/BIGMAP.md) · [Quickstart](docs/QUICKSTART.md) · [Case study](case-study/WALKTHROUGH.md)
+The repository is a fork of a crypto-paper workflow. The blackboard discipline is retained; the domain layer now
+covers the user's three attack folders:
 
-![BIGMAP](docs/bigmap/bigmap.png)
+- **01 external interaction:** web/content/evidence injection, role and chat boundaries, GUI/visual attacks,
+  tool/MCP metadata and selection, toolchain consequences and cost;
+- **02 internal cognition:** backdoors, reasoning hijacking, memory/RAG and multimodal memory poisoning, privacy
+  extraction and availability attacks;
+- **03 multi-agent collaboration:** infectious prompts, message tampering, hidden/malicious agents, collusion,
+  distributed/compositional prompts, manipulated knowledge/misinformation, control-flow hijacking and blocking.
 
-## Why
+Defense, framework, benchmark and misinformation neighbours from folders 04–09 are used as baselines and context.
+The user's distilled KB and paper PDFs stay outside this repository; set `CRA_KB` or put `kb: /path/to/file.md` in
+an initialized research project's `STATE.md`.
 
-Most failed crypto papers do not fail on ideas; they fail on *process*: a claim that was never
-attacked, a speedup against the wrong baseline, a number nobody can trace to a log, a reference
-that does not exist, a rebuttal that answers the wrong question. This repo encodes a process that
-makes those failures structurally hard:
+## Why this workflow
 
-- **Falsify first** — ideas become falsifiable rows in `CLAIMS.md`; a dedicated `falsifier`
-  agent (with veto) attacks them before any prose is written.
-- **Every number has a log** — `EVIDENCE.md` + `crbench audit-tex` block untraceable numbers.
-- **Every reference exists** — `bib-verify` checks bib entries against DBLP/Crossref/ePrint.
-- **Agents talk through files** — a shared blackboard makes hand-offs explicit and auditable.
+Attack papers often fail because the access point is circular, "success" is a judge artefact, the naive injection
+was never measured, benign utility is missing, the strongest defense is absent, or a result cannot be reproduced
+from a model snapshot and raw transcript. This toolkit makes those failures visible:
+
+- every attack-facing claim enters `CLAIMS.md` and is attacked by `falsifier` before prose;
+- every rate carries n and a Wilson 95% interval, and every printed number has an `EVIDENCE.md` row;
+- every judge is validated against human labels and fingerprinted;
+- every idea is positioned against the user's KB before investment;
+- every experiment records models, snapshots, temperature, seeds, framework, topology, cache and cost;
+- every artifact obeys sandbox, redaction and responsible-disclosure rules.
 
 ## What is inside
 
-| Directory | Contents |
+| path | purpose |
 |---|---|
-| `agents/` | 12 subagents: pi-orchestrator, lit-scout, math-librarian, idea-miner, theorist, baseline-engineer, experimenter, falsifier, writer, figure-artist, reviewer-sim, submission-rebuttal |
-| `skills/` | ~30 skills: eprint-search, bib-verify, lit-matrix, textbook-index, idea-mining-loop, sage-check, lean-bridge, param-estimation, baseline-pin, bench-protocol, log-to-evidence, falsify, paper-playbook (13 section guides), abstract-craft, technique-overview, venue-calibration, mock-review, rebuttal, anonymize-check, camera-ready, artifact-pack, paper-figures, figure-harvest, … |
+| `agents/` | 12 roles: pi-orchestrator, lit-scout, kb-curator, idea-miner, threat-modeler, baseline-engineer, experimenter, falsifier, writer, figure-artist, reviewer-sim, submission-rebuttal |
+| `skills/` | paper-search, attack-kb, threat-model, ethics-disclosure, eval-protocol, judge-validation, mas-testbed, adaptive-eval, falsify, baseline-pin, writing, review and release procedures |
 | `commands/` | `/cra-init`, `/cra-status`, `/cra-phase`, `/cra-lit`, `/cra-ideas`, `/cra-falsify`, `/cra-bench`, `/cra-write`, `/cra-figure`, `/cra-review`, `/cra-rebuttal`, `/cra-submit` |
-| `workflows/` | phase playbook P0–P8 with gates + multi-agent Workflow scripts (lit-sweep, idea-tournament, falsify-round, mock-review-panel) |
-| `lib/cryptomath/` | algebra (GF(p^k), cyclotomics, Galois, CRT slots, NTT, Z_{p^e}, digit extraction, characters), lattice (LWE/RLWE/NTRU, estimators, BKZ sim, LLL), FHE toys (BGV, BFV, CKKS, TFHE/PBS, noise models, PS/BSGS, Chebyshev), symmetric (DDT/LAT/BCT, Boolean functions, APN, AES/SPN, SAT/MILP trail models, AO-cipher costs), protocols (SS, OT, OPRF, PSI/GC cost), EC (curves, DLP), costmodel |
-| `lib/core/` | `cra_core` + `cra` CLI: lossless blackboard edits, claim/evidence invariants in code, phase gates, event log, git pre-commit hook |
-| `lib/mcp/` | `cra-mcp`: MCP server (stdio / Streamable HTTP, profiles core/full/remote) + `cra-mcp install --host <21 hosts>` |
-| `lib/studio/` | **CRA Studio**: local GUI (projects, ledgers, gates, research agent on any OpenAI-compatible API); `packaging/` builds one executable for Windows/macOS/Linux that is also the MCP server |
-| `lib/bench/` | `crbench`: interleaved A/B runs, robust stats, env capture, parsers for OpenFHE/HElib/Lattigo/TFHE-rs/…, LaTeX tables, EVIDENCE ledger, `audit-tex` |
-| `lib/lean-template/` | Lean 4 + Mathlib project template with the proposition ↔ Lean-name table pattern |
-| `figures/` | house mplstyles (LNCS/ACM/IEEE), 16 matplotlib + 5 TikZ templates, figure harvester + pattern catalog |
-| `templates/` | blackboard files, LNCS paper skeleton, rebuttal & hand-off templates |
-| `references/` | textbook catalog with tables of contents + topic map, reading lists per area, baseline MANIFEST (29 libraries) + fetch script |
-| `case-study/` | a complete toy project (TFHE S-box evaluation) run through all phases, with real toy measurements |
+| `lib/agentattack/` | ASR/utility/stealth metrics, Wilson/bootstrap CIs, McNemar, judge κ and fingerprinting, threat-model schema, KB parser/search, mock/OpenAI-compatible/cached backends, MAS testbed, resumable trial runner and `aa` CLI |
+| `lib/core/` | blackboard tables, claim/evidence invariants, phase gates, event log and `cra` CLI |
+| `lib/mcp/` | `cra-mcp`: typed blackboard tools plus KB search, threat checks, rate CIs, paper search and host installers |
+| `lib/bench/` | `crbench`: raw-log parsing, latency/resource measurement, environment capture, evidence ledger and `audit-tex` |
+| `templates/` | attack-paper blackboard and neutral article paper skeleton |
+| `case-study/` | synthetic five-agent provenance-relay example; no live models or services |
+| `figures/` | attack-pipeline, topology, ASR/CI, propagation and model×attack figure patterns |
 
 ## Install
 
 ```bash
-git clone <this repo> ~/crypto-research-agents
-cd ~/crypto-research-agents
-pip install -e lib/core -e lib/mcp -e lib/cryptomath -e lib/bench   # python ≥ 3.10  (add "[test]" for pytest)
-./install.sh /path/to/my-paper                        # or: ./install.sh --user  (all projects)
-scripts/check_all.sh                                  # optional: run every test / self-test (needs pytest)
+git clone <this repo> ~/agent-attack-research-agents
+cd ~/agent-attack-research-agents
+python3 -m pip install -e lib/core -e lib/agentattack -e lib/mcp -e lib/bench
+./install.sh /path/to/my-agent-attack-project       # or ./install.sh --user
+scripts/check_all.sh --quick
 ```
-Or as a Claude Code plugin: `claude plugin install <path-or-url>`.
 
-Any other AI platform (Codex, Cline + DeepSeek, Gemini CLI, Cursor, VS Code, ChatGPT, …):
+To initialize a project:
+
 ```bash
-cra init ~/papers/my-paper
-cra-mcp install --host <codex|cline|gemini|cursor|vscode|chatgpt|...> --project ~/papers/my-paper
+cra init ~/papers/my-agent-attack
+cd ~/papers/my-agent-attack
+export CRA_KB=/absolute/path/to/Agent安全论文知识库.md
+cra status
 ```
-See [docs/integrations/README.md](docs/integrations/README.md) ([中文](docs/zh/integrations.md)).
 
-Then, inside Claude Code in your project:
-```
-/cra-init .                       # blackboard + paper skeleton
-/cra-phase P1                     # literature
-/cra-ideas "<bottleneck>"         # idea mining
-/cra-falsify                      # red-team every open claim
-/cra-status                       # where are we, what next
-```
-See [docs/QUICKSTART.md](docs/QUICKSTART.md).
+In Claude Code, use `/cra-init .`, then `/cra-phase P1`, `/cra-ideas "<attack bottleneck>"`,
+`/cra-falsify` and `/cra-status`. Outside Claude Code, install `cra-mcp` for the host and call `cra_resume`
+first in each session. See `docs/QUICKSTART.md` and `docs/integrations/README.md`.
 
-## Scope and honesty
-- Toy implementations in `lib/cryptomath` are **not secure**; they exist to reason, count and
-  sanity-check on small parameters.
-- Venue page limits / rebuttal budgets in `skills/venue-calibration` are orientation only —
-  always read the current CFP.
-- The system never sends anything off your machine (submissions, e-mails, public repos)
-  without your explicit approval.
+The domain library's offline demo is:
+
+```bash
+aa selftest
+cd case-study/toy-agent-attack
+PYTHONPATH=../../lib/agentattack python3 code/run_experiment.py
+PYTHONPATH=../../lib/agentattack python3 code/check_claim.py
+```
+
+## Scope and safety
+
+The attack testbed is for authorized security research, defensive evaluation and synthetic education. It never
+contacts live third-party agents, real users, public registries or production pages. Working payloads, credentials,
+personal data and private research content do not belong in git. Transferable findings require a disclosure entry
+and a human-approved release decision. Toy backends are not models of real LLM behaviour.
 
 ## License
+
 MIT

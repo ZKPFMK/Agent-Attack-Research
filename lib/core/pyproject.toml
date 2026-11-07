@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cra-core"
 version = "0.2.0"
-description = "Typed state layer for the crypto-research-agents blackboard: lossless Markdown tables, claim/evidence ledgers with invariants, phase gates, file lock and event log. Shared by the gate scripts, the `cra` CLI and the cra-mcp server."
+description = "Typed state layer for the agent-attack-research-agents blackboard: lossless Markdown tables, claim/evidence ledgers with invariants, phase gates, file lock and event log. Shared by the gate scripts, the `cra` CLI and the cra-mcp server."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []

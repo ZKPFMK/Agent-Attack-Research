@@ -1,0 +1,11 @@
+\section{Evaluation}
+\subsection{Setup and protocol}
+Report model snapshot/API date, framework version, tasks, topology, system prompts, temperature, seeds, n per
+cell, memory reset, judge fingerprint and cache. The preregistered protocol is in `results/.../PROTOCOL.md`.
+\subsection{Metrics and judge}
+Report $\asr$ with Wilson 95\% CIs and $n$, benign utility with its interval, false-trigger rate, detection/stealth,
+latency, tokens, queries and cost. The judge was validated against human labels; report accuracy, precision,
+recall and Cohen's $\kappa$ or use deterministic checks.
+\subsection{Results and ablations}
+Present no-attack, naive, proposed, defense and adaptive arms. Break down by model, task, topology and attack
+budget. Every printed number maps to `EVIDENCE.md`; negative and failed trials remain in the raw log.
